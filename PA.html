@@ -1,0 +1,1059 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<body>
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/spin.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/jquery-ui.min.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/component.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/component-button.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/normalize.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/PA.css' %}">
+<script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/jquery.js' %}"></script>
+<script src="{% static 'jquery-ui-1.11.4.custom/d3.min.js' %}"></script>
+<script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/jquery-labrat-tip.js' %}"></script>
+<script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/d3-legend.js' %}"></script>
+<script src="{% static 'jquery-ui-1.11.4.custom/snap.svg-min.js' %}"></script>
+<link href='https://fonts.googleapis.com/css?family=Bitter:400,400italic' rel='stylesheet' type='text/css'>
+<!-- will get data from templates so load first -->
+<script>
+//let the games begin
+dbDataDump();
+
+var timerStart = Date.now();
+console.log('WHY ? '+timerStart);
+
+function dbDataDump(){
+
+	window.stockSector = {{ll_pfsector | safe}}
+	window.mktSector = {{ll_mktsector | safe}}
+	window.stockMcap = {{ll_pfmcap | safe}}
+	window.stockPfWt = {{ll_stkalloc | safe}}
+	window.secMktWt = {{ll_secmktwt | safe}}
+	window.secReturns = {{ll_secreturns | safe}}
+	window.topStockReturns = {{ll_stkreturns | safe}}
+	window.stockReturns = {{ll_pfreturns | safe}}
+	window.topSecReturns = {{ll_topsec | safe}}
+	window.BenchmarkReturns = parseFloat({{mktRet | safe}})
+	
+	window.pieRadiusDiff = 80;
+	window.doughRadiusOuterDiff = 20;
+	window.doughRadiusInnerDiff = 90;
+	window.XOffset = 150;
+	window.YOffset = 25;
+
+	initData();
+
+}
+// if sectorOrStock = 0 then sector else stock
+function initData(){
+	window.StockSectorMap = {};
+	window.MktSectorMap = {};
+	window.StockMCap = {};
+	window.StockWt = {};
+	window.SecWt = {};
+	window.SecReturn = {};
+	window.TopStockReturn = {};
+	window.TopSecReturn = {};
+	window.PfStockReturn = {};
+
+	window.dough1 = [];
+	window.dough2 = [];
+	window.pfReturns = 0.0;
+	window.bar1 = [];
+	window.bar2 = [];
+
+	List1 =  Object.keys(stockSector);
+	
+	for (ctr = 0; ctr< List1.length ; ctr++){
+		StockSectorMap[List1[ctr]] = stockSector[List1[ctr]];
+	}
+
+	List1 =  Object.keys(mktSector);
+	
+	for (ctr = 0; ctr< List1.length ; ctr++){
+		MktSectorMap[List1[ctr]] = mktSector[List1[ctr]];
+	}
+
+	List1 =  Object.keys(stockMcap);
+	
+	for (ctr = 0; ctr< List1.length ; ctr++){
+		StockMCap[List1[ctr]] = parseFloat( stockMcap[List1[ctr]] );
+	}
+	
+	List1 =  Object.keys(stockPfWt);
+	
+	for (ctr = 0; ctr< List1.length ; ctr++){
+		StockWt[List1[ctr]] = parseFloat( stockPfWt[List1[ctr]] );
+	}
+
+	List1 =  Object.keys(secMktWt);
+	
+	for (ctr = 0; ctr< List1.length ; ctr++){
+		SecWt[List1[ctr]] = parseFloat (secMktWt[List1[ctr]]);
+	}
+
+	List1 =  Object.keys(secReturns);
+	
+	for (ctr = 0; ctr< List1.length ; ctr++){
+		SecReturn[List1[ctr]] = parseFloat (secReturns[List1[ctr]]);
+	}
+
+	List1 =  Object.keys(topSecReturns);
+	
+	for (ctr = 0; ctr< List1.length ; ctr++){
+		TopSecReturn[List1[ctr]] = parseFloat( topSecReturns[List1[ctr]]);
+	}
+
+	for (ctr = 0; ctr< topStockReturns.length ; ctr++){
+		TopStockReturn[ topStockReturns[ctr].Symbol ] = parseFloat( topStockReturns[ctr].gainLoss );
+	}
+
+	for (ctr = 0; ctr< stockReturns.length ; ctr++){
+		PfStockReturn[ stockReturns[ctr].Symbol ] = parseFloat( stockReturns[ctr].gainLoss );
+	}
+
+	List1 =  Object.keys(stockSector);
+		
+	for (ctr = 0; ctr< List1.length ; ctr++){
+		pfReturns = pfReturns + StockWt[ List1[ctr] ]*PfStockReturn[ List1[ctr] ]; 
+				 console.log('JK '+List1[ctr]+' '+StockWt[ List1[ctr] ]+' '+PfStockReturn[ List1[ctr] ]);
+	}
+	pfReturns = Math.round( pfReturns * 100) / 100;
+	BenchmarkReturns = Math.round( BenchmarkReturns * 100) / 100;	
+
+	refreshScreen(0, null);
+
+}
+
+function refreshScreen(sectorOrStock, selectedSector){
+
+	if(sectorOrStock == 0){
+	//  first inut is sector wt in your pf
+		sectorWt = 0;
+		sectorRet = 0;
+		locsector = '';
+		List1 =  Object.keys(StockWt);
+		var singleObj = {};
+	
+		for (ctr = 0; ctr< List1.length ; ctr++){
+			
+			if( StockSectorMap[ List1[ctr] ]  != locsector && sectorWt > 0  ){
+				 var singleObj = {};
+				 sectorArr = locsector.split(" ");
+	// name and value pair is for bar2 and the other pairs for dough 1 ..since we can use 1 loop , lets just do it
+				 singleObj['asset'] =  locsector ;	
+				 singleObj['weight'] =   sectorWt;
+				 singleObj['name'] =   locsector;
+				 singleObj['value'] =   sectorRet;
+				 dough1.push(singleObj); 	
+				 bar2.push(singleObj); 	
+				 sectorWt = 0;
+				 sectorRet = 0;
+				 locsector = '';
+			}
+			sectorWt = sectorWt + StockWt[ List1[ctr] ];
+			sectorRet = sectorRet + StockWt[ List1[ctr] ]*PfStockReturn[ List1[ctr] ];
+			locsector = StockSectorMap[ List1[ctr] ];	
+		}
+		var singleObj = {};
+		singleObj['asset'] =  locsector ;
+                singleObj['weight'] =   sectorWt;
+		singleObj['name'] =   locsector;
+		singleObj['value'] =   sectorRet;
+				 console.log('IJ '+locsector+' '+sectorRet);
+                dough1.push(singleObj);
+		bar2.push(singleObj); 	
+	//  second inut is sector wt in mkt
+		List1 =  Object.keys(SecWt);
+		var totWt = 0;
+		for (ctr = 0 ; ctr < List1.length; ctr++)
+		{
+			totWt = totWt + SecWt[List1[ctr]];
+		}
+
+		for (ctr = 0 ; ctr < List1.length; ctr++)
+		{
+			 var singleObj = {};
+	                 singleObj['asset'] =  List1[ctr] ;
+         	         singleObj['weight'] =  Math.round( (SecWt[List1[ctr]]/totWt) * 100) / 100;
+			 console.log(singleObj['asset']+' '+singleObj['weight'] );	
+			 dough2.push(singleObj);	
+		}
+	//entry for first bar chart bottom panel (left)
+		List1 =  Object.keys(TopSecReturn);
+		for (ctr = 0 ; ctr < List1.length; ctr++)
+		{
+			 var singleObj = {};
+	                 singleObj['name'] =  List1[ctr] ;
+         	         singleObj['value'] =  Math.round( TopSecReturn[List1[ctr]] * 100) / 100;
+			 bar1.push(singleObj);	
+		}
+	}
+	else
+	{
+	//COMING IN HERE FOR SECTOR SPECIFIC ADVICE
+	//clear all the datastructures for input
+		window.dough1 = [];
+	        window.dough2 = [];
+     		window.pfReturns = 0.0;
+        	window.bar1 = [];
+        	window.bar2 = [];
+
+	//  first inut is sector wt in your pf
+		sectorWt = 0;
+		sectorRet = 0;
+		normPfWt = 0;
+  		normMktWt = 0;
+		locsector = '';
+		List1 =  Object.keys(StockWt);
+		var singleObj = {};
+		//calc norm wts of stocks in that sector from your PF	
+		for (ctr = 0; ctr< List1.length ; ctr++){
+			if( StockSectorMap[ List1[ctr] ]  == selectedSector ){
+				normPfWt = normPfWt + StockWt[ List1[ctr] ];	
+				normMktWt = normMktWt + StockMCap[ List1[ctr] ];	
+				console.log('CLAM '+ List1[ctr]+' '+StockMCap[ List1[ctr] ]);
+			}
+		}
+		for (ctr = 0; ctr< List1.length ; ctr++){
+			if( StockSectorMap[ List1[ctr] ]  == selectedSector ){
+				var singleObj = {};
+				singleObj['asset'] =  List1[ctr] ;
+                		singleObj['weight'] =   Math.round( StockWt[ List1[ctr] ]/normPfWt * 100) / 100;
+				singleObj['name'] =   List1[ctr];
+				singleObj['value'] =   Math.round( PfStockReturn[ List1[ctr] ] * 100) / 100;
+                		dough1.push(singleObj);
+				bar2.push(singleObj); 	
+				pfReturns = pfReturns + StockWt[ List1[ctr] ]*PfStockReturn[ List1[ctr] ];
+			}
+		}
+		BenchmarkReturns = SecReturn[selectedSector];
+		for (ctr = 0; ctr< List1.length ; ctr++){
+			if( StockSectorMap[ List1[ctr] ]  == selectedSector ){
+				var singleObj = {};
+				singleObj['asset'] =  List1[ctr] ;
+                		singleObj['weight'] =   Math.round( StockMCap[ List1[ctr] ]/normMktWt  * 100) / 100;
+				console.log('PTSD '+singleObj['asset']+' '+singleObj['weight']+' '+normMktWt);
+                		dough2.push(singleObj);
+			}
+		}
+	//entry for first bar chart bottom panel (left)
+		List1 =  Object.keys(MktSectorMap);
+		for (ctr = 0 ; ctr < List1.length; ctr++)
+		{
+			if( MktSectorMap[ List1[ctr] ]  == selectedSector ){
+			 	var singleObj = {};
+	                 	singleObj['name'] =  List1[ctr] ;
+         	         	singleObj['value'] =  Math.round( TopStockReturn[List1[ctr]] * 100) / 100;
+				console.log('CLAM2 '+ List1[ctr]+' '+ TopStockReturn[List1[ctr]]);
+			 	bar1.push(singleObj);	
+			}	
+		}
+		//all data sctuctures initialized, now call screen constructor
+	}
+		console.log('PUTTAR' + genMessage(selectedSector));
+		screenConstructor( selectedSector );
+	//start calling rendering functions
+
+        }
+
+	function screenConstructor( selectedSector ){
+		//can come in here only through sectoral clikc
+		refreshFirstPie( selectedSector );
+		refreshSecondPie( selectedSector );
+		refreshMktvsPfReturns(selectedSector);
+		refreshMarketTopAssets(selectedSector );
+		refreshPfTopAssets(selectedSector);
+		//genMessage ( selectedSector );
+	}	
+
+	function checkIfTopPresent(){
+		window.msgArr = [];
+		window.TopInMktButNotPfArr = [];
+		for (ctr =0; ctr < bar1.length; ctr++){
+		var flg = 0;
+			for (ctr1 = 0; ctr1 < bar2.length; ctr1++){
+				if(bar2[ctr1].name == bar1[ctr].name){
+					var singleObj = {};
+					singleObj['pfsecname'] = bar2[ctr1].name;
+					singleObj['pfsecreturns'] = bar2[ctr1].value;
+					singleObj['pfsecwt'] = returnWt (bar2[ctr1].name , dough1);
+					singleObj['mktsecname'] = bar1[ctr].name;
+					singleObj['mktsecreturns'] = bar1[ctr].value;
+					singleObj['mktsecwt'] = returnWt (bar1[ctr].name , dough2);
+			 		msgArr.push(singleObj);	
+					flg = 1;
+					break;
+				}
+			}
+			if(flg != 1 && bar1[ctr].value >0){
+				var singleObj = {};
+				singleObj['pfsecname'] = bar1[ctr].name;
+                                singleObj['pfsecreturns'] = bar1[ctr].value;
+				TopInMktButNotPfArr.push(singleObj);
+				console.log('CRAZY '+singleObj['pfsecname']+' '+singleObj['pfsecreturns']);
+			}
+		}	
+		return msgArr;	
+	}
+
+	function returnWt( asset, container ){
+		for (ctr =0 ; ctr < container.length; ctr++){
+			if (asset == container[ctr].asset) return container[ctr].weight;
+		}
+	}
+	
+	function genMessage ( sector ){
+		window.message = '';
+		window.threshold = 0.05;
+		
+		if(sector){
+		//gen message for stocks
+			if( BenchmarkReturns > (pfReturns+threshold) ){
+				console.log('1');
+				message = message+"Your returns for the sector are lower than the market benchmark. Given below is a brief analsysis for the underperformance of your stocks.";
+				//check if 1 or more stocks present in top market weighted
+				locArr = checkIfTopPresent();
+				console.log(' crazy '+TopInMktButNotPfArr.length);
+	
+				if (TopInMktButNotPfArr.length > 0){
+						message = message+" Also notice, the lack of top weighted stock/s ";
+					for (ctr=0;ctr<TopInMktButNotPfArr.length;ctr++){
+						message = message+TopInMktButNotPfArr[ctr].pfsecname+" ";
+						if(ctr>=1){
+							message = message+",";
+						}
+					}
+						message = message+" in your portfolio has negatively impacted your returns.";
+				}
+				
+				if( locArr.length > 0){
+					for (ctr = 0 ; ctr < locArr.length; ctr++){
+				console.log('11');
+						//pf sector returns are worse than markets , now check wt
+						if ( locArr[ctr].pfsecreturns > threshold ){
+							if ( locArr[ctr].pfsecwt > (locArr[ctr].mktsecwt + threshold)  ){
+								message = message+" "+locArr[ctr].pfsecname+" has a higher weight in your portfolio. Helps your returns, you know!" ;
+							}else{
+								message = message+" "+locArr[ctr].pfsecname+" has a lower weight in your portfolio and reduced your returns" ;
+							}
+						}else{
+							if ( locArr[ctr].pfsecwt > (locArr[ctr].mktsecwt + threshold)  ){
+								message = message+" "+locArr[ctr].pfsecname+" has a higher weight in your portfolio and negatively impacted your returns"; 
+							}else{
+								message = message+" "+locArr[ctr].pfsecname+" has a lower weight in your portfolio and helped your returns" ;
+							}
+						}	
+					}
+				console.log('12');
+				}
+				else{
+					 message = message+" The stock/s in your portfolio don't belong to any of the top weighted stocks in the market. Until you have strong fundamental reasons to hold on to this stock/s please do review its performance every quarter at least!" ;
+				}
+			}
+			else{
+				message = message+"Your returns for the sector are better than the market benchmark. Given below is a brief analsysis for the decent performance of your stocks.";
+				console.log('22');
+				//check if 1 or more stocks present in top market weighted
+				locArr = checkIfTopPresent();
+				console.log(' crazy '+TopInMktButNotPfArr.length);
+	
+				if (TopInMktButNotPfArr.length > 0){
+						message = message+" Also notice, the lack of top weighted stock/s ";
+					for (ctr=0;ctr<TopInMktButNotPfArr.length;ctr++){
+						message = message+TopInMktButNotPfArr[ctr].pfsecname+" ";
+						if(ctr>=1){
+							message = message+",";
+						}
+					}
+						message = message+" in your portfolio has negatively impacted your returns.";
+				}
+				if( locArr.length > 0){
+					for (ctr = 0 ; ctr < locArr.length; ctr++){
+				console.log('23');
+						//pf sector returns are worse than markets , now check wt
+						if ( locArr[ctr].pfsecreturns > threshold ){
+							if ( locArr[ctr].pfsecwt > (locArr[ctr].mktsecwt + threshold)  ){
+								message = message+" "+locArr[ctr].pfsecname+" has a higher weight in your portfolio. Helps your returns, you know!" ;
+							}else{
+								message = message+" "+locArr[ctr].pfsecname+" has a lower weight in your portfolio and reduced your returns" ;
+							}
+						}else{
+							if ( locArr[ctr].pfsecwt > (locArr[ctr].mktsecwt + threshold)  ){
+								message = message+" "+locArr[ctr].pfsecname+" has a higher weight in your portfolio and negatively impacted your returns"; 
+							}else{
+								message = message+" "+locArr[ctr].pfsecname+" has a lower weight in your portfolio and helped your returns" ;
+							}
+						}	
+					}
+				}
+				else{
+					 message = message+" The stock/s in your portfolio don't belong to any of the top weighted stocks in the market. Until you have strong fundamental reasons to hold on to this stock/s please do review its performance every quarter at least!"; 
+				}
+			}
+			message = message+" Please do check out the analysis for the other sectors or other modules on our platform.";
+		}
+		else
+		{
+		//gen message for sector
+			if( BenchmarkReturns > (pfReturns+threshold) ){
+				console.log('24');
+				message = message+"Your portolio  returns are lower than the market benchmark(NIFTY 50). Given below is a brief analsysis for the underperformance of your portfolio.";
+				//check if 1 or more sectors present in top market weighted
+				locArr = checkIfTopPresent();
+				console.log(' crazy '+TopInMktButNotPfArr.length);
+	
+				if (TopInMktButNotPfArr.length > 0){
+						message = message+" Also notice, the lack of stocks from market's top weighted sector/s ";
+					for (ctr=0;ctr<TopInMktButNotPfArr.length;ctr++){
+						message = message+TopInMktButNotPfArr[ctr].pfsecname+" ";
+						if(ctr>=1){
+							message = message+",";
+						}
+					}
+						message = message+" in your portfolio has negatively impacted your returns.";
+				}
+				if( locArr.length > 0){
+					for (ctr = 0 ; ctr < locArr.length; ctr++){
+						if( locArr[ctr].pfsecreturns > (locArr[ctr].mktsecreturns + threshold) ){
+				console.log('25');
+						//pf sector returns are better than markets , now check wt
+							if ( locArr[ctr].pfsecwt > (locArr[ctr].mktsecwt + threshold)  ){
+								message = message+" "+locArr[ctr].pfsecname+" has better returns compared to its market benchmark due to better stock selection strategy in your portfolio. You were also overweight this sector, which helped improve your returns." ;
+							}else{
+								message = message+" "+locArr[ctr].pfsecname+" has better returns compared to its market benchmark due to better stock selection strategy in your portfolio. But you were underweight/equi-weight this sector (as shown by Market Weights) which reduced your total returns." ;
+							}	
+						}
+						else{
+						//pf sector returns are worse than markets , now check wt
+							if ( locArr[ctr].pfsecwt > (locArr[ctr].mktsecwt + threshold)  ){
+								message = message+" "+locArr[ctr].pfsecname+" has lower returns compared to its market benchmark due to poorer stock selection strategy in your portfolio. You were also overweight this sector, which reduced your returns." ;
+							}else{
+								message = message+" "+locArr[ctr].pfsecname+" has lower returns compared to its market benchmark due to poorer stock selection strategy in your portfolio. But you were underweight/equi-weight this sector (compared to the market,as shown by Market Weights), which reduced your total returns." ;
+							}	
+						} 
+					}
+				}
+				else{
+					 message = message+" The stock/s in your portfolio don't belong to any of the top weighted sectors in the market. We would like to stress the importance of choosing a good sector before betting on a stock. Do check out our recommendations on different sectors!" ;
+				}
+			}
+			else{
+				message = message+"Your portolio  returns are as good / better than the market benchmark(NIFTY 50). Given below is a brief analysis for the higher performance of your portfolio.";
+				//check if 1 or more sectors present in top market weighted
+				locArr = checkIfTopPresent();
+				console.log(' crazy '+TopInMktButNotPfArr.length);
+	
+				if (TopInMktButNotPfArr.length > 0){
+						message = message+" Also notice, the lack of top weighted stock/s ";
+					for (ctr=0;ctr<TopInMktButNotPfArr.length;ctr++){
+						message = message+TopInMktButNotPfArr[ctr].pfsecname+" ";
+						if(ctr>=1){
+							message = message+",";
+						}
+					}
+						message = message+" in your portfolio has negatively impacted your returns.";
+				}
+				if( locArr.length > 0){
+					for (ctr = 0 ; ctr < locArr.length; ctr++){
+				console.log('26');
+						if( locArr[ctr].pfsecreturns > (locArr[ctr].mktsecreturns + threshold) ){
+						//pf sector returns are better than markets , now check wt
+							if ( locArr[ctr].pfsecwt > (locArr[ctr].mktsecwt + threshold)  ){
+								message = message+" "+locArr[ctr].pfsecname+" has better returns compared to its market benchmark due to better stock selection strategy in your portfolio. You were also overweight this sector, which helped improve your returns."; 
+							}else{
+								message = message+" "+locArr[ctr].pfsecname+" has better returns compared to its market benchmark due to better stock selection strategy in your portfolio. But you were underweight/equi-weight this sector (as shown by Market Weights), which reduced your total returns."; 
+							}	
+						}
+						else{
+						//pf sector returns are worse than markets , now check wt
+							if ( locArr[ctr].pfsecwt > (locArr[ctr].mktsecwt + threshold)  ){
+								message = message+" "+locArr[ctr].pfsecname+" has lower returns compared to its market benchmark due to poorer stock selection strategy in your portfolio. You were also overweight this sector, which reduced your returns." ;
+							}else{
+								message = message+" "+locArr[ctr].pfsecname+" has lower returns compared to its market benchmark due to poorer stock selection strategy in your portfolio. But you were underweight/equi-weight this sector (compared to the market,as shown by Market Weights), which reduced your total returns." ;
+							}	
+						} 
+					}
+				}
+				else{
+					 message = message+" The stock/s in your portfolio don't belong to any of the top weighted sectors in the market. We would like to stress the importance of choosing a good sector before betting on a stock." ;
+				}
+				console.log('27');
+			}
+			message = message+" In order to investigate your stock selection strategy please click on either of the doughnut charts on the respective sectoral areas. The bottomline is that the more you follow the markets weights in terms of sectoral and stock allocation, the more your returns will mirror those of the markets. To beat the markets however one must read the economic environment appropriately, rebalance , diversify and protect their portfolio. All of which you can perform on our platform! Happy investing!";
+		}
+	console.log('POS '+message );
+	document.getElementById("GyanPara").innerHTML = window.message;
+	}
+
+	function refreshFirstPie( selectedSector ){
+	var margin = {top: 20, right: 30, bottom: 20, left: 30};
+	//ele = window.getComputedStyle (document.getElementById("outer"));
+	width = parseFloat( $("#outer").css("width") );
+	height = parseFloat( $("#outer").css("height") );
+	//width = parseFloat( ele.getPropertyValue("width") );
+	//height = parseFloat( ele.getPropertyValue("height") );
+	
+	//clear all svg first
+	d3.selectAll("#inner svg").remove();	
+	
+	console.log('WODTH '+width+' '+height+' '+screen.width+' '+screen.height);
+
+	var radius = (height/2);
+
+	var color = d3.scale.ordinal()
+		.range(["#5DA5DA", "#FAA43A", "#60BD68", "#B2912F", "#B276B2", "#DECF3F", "#F15854"]);
+
+		
+	var arc = d3.svg.arc()
+		.outerRadius(radius - pieRadiusDiff)
+		.innerRadius(0);
+		
+	var doughnutArc = d3.svg.arc()
+		.outerRadius(radius - doughRadiusOuterDiff)
+		.innerRadius(radius - doughRadiusInnerDiff);	
+
+	var pie = d3.layout.pie()
+			.sort(null)
+			.value(function(d) { return d.weight; });
+
+
+	var svg = d3.select("#inner").append("svg")
+		.attr("width", width)
+		.attr("height", height)
+		.append("g")
+		.attr("transform", "translate(" + (((width) / 2)-40) + "," + ( ((height) / 2)) + ")");
+	
+	
+
+	//d3.csv("data.csv", type, function(error, data) {
+	  data1 = dough1;
+	  console.log(data1[0].asset+' '+data1[1].asset+' '+data1[2].asset+' '+data1[0].weight+' '+data1[1].weight+' '+data1[2].weight+' ');	
+	  data1.forEach(function(d) {
+						d.weight = +d.weight;
+					  });
+
+	  
+	  var g1 = svg.selectAll("#outer .arc")
+		  .data(pie(data1))
+		  .sort(null)
+		  .enter().append("g");
+
+	
+	  
+	  g1.append("path")
+		  .attr("d", doughnutArc)
+		  .attr("data-legend", function(d,i) { return data1[i].asset; })
+		  .on("click", function(d,i ) { if (!selectedSector) {refreshScreen( 1, data1[i].asset );} else { alert('Sorry, this is the finest level of granularity');  } } )
+		  .style("fill", function(d) { return color(d.data.asset); });
+		  
+	  g1.append("text")
+		  .attr("transform", function(d) { return "translate(" + doughnutArc.centroid(d) + ")"; })
+		  .attr("dy", ".35em")
+		  .style("font-weight","bold")
+		  .text(function(d) { return (d.data.weight*100)+"%" ; });	  	  
+	
+	  
+		  
+	  g1.append("g")
+				.attr("class","legend")
+				.attr("transform", "translate(" + (((width)/2+40) - XOffset) + "," + ( YOffset - ((height) / 2) ) + ")")
+				.style("font-size","15px")
+				.attr("data-style-padding",10)
+				.call(d3.legend);	
+
+	  
+
+	  
+	  //call messasset generation
+	  
+	//});
+
+	}
+
+	function refreshSecondPie( selectedSector ){
+		
+		widthR = parseFloat( $("#outerR").css("width") );
+		heightR = parseFloat( $("#outerR").css("height") );
+
+		var radius = (height/2);
+
+		var color = d3.scale.ordinal()
+			.range(["#5DA5DA", "#FAA43A", "#60BD68", "#B2912F", "#B276B2", "#DECF3F", "#F15854"]);
+
+		d3.selectAll("#innerR svg").remove();	
+			
+		var arc = d3.svg.arc()
+			.outerRadius(radius - pieRadiusDiff)
+			.innerRadius(0);
+			
+		var doughnutArc = d3.svg.arc()
+			.outerRadius(radius - doughRadiusOuterDiff)
+			.innerRadius(radius - doughRadiusInnerDiff);	
+
+		var pie = d3.layout.pie()
+				.sort(null)
+				.value(function(d) { return d.weight; });
+
+
+		if( d3.select("#innerR").selectAll("svg").empty() ){		
+			var svg = d3.select("#innerR").append("svg")
+				.attr("width", widthR)
+				.attr("height", height)
+				.append("g")
+				.attr("transform", "translate(" + (widthR) / 2 + "," + (height) / 2 + ")");
+				//.attr("transform", "translate(150, 250)");
+		}
+		else
+			var svg = d3.select("#innerR").selectAll("svg")
+				.attr("width", widthR)
+				.attr("height", height)
+				.append("g")
+				.attr("transform", "translate(" + (widthR) / 2 + "," + (height) / 2 + ")");
+				//.attr("transform", "translate(300, 300)");
+		
+		svg.selectAll("path")
+				.remove();
+		svg.selectAll("text")
+				.remove();			
+		//d3.csv("data.csv", type, function(error, data) {
+		data = dough2;
+  
+		data.forEach(function(d) {
+							d.weight = +d.weight;
+						  });
+
+		  
+		  var g1 = svg.selectAll("#outerR .arc")
+			  .data(pie(data))
+			  .sort(null)
+			  .enter().append("g");
+		  
+		  g1.append("path")
+		  .attr("d", doughnutArc)
+		  .on("click", function(d,i ) { if (!selectedSector) {refreshScreen( 1, data1[i].asset );} else { alert('Sorry, this is the finest level of granularity');  } } )
+		  //.attr("data-legend", function(d,i) { return data1[i].asset; })
+		  .style("fill", function(d) { return color(d.data.asset); });
+		  
+		  g1.append("text")
+			.attr("transform", function(d) { return "translate(" + doughnutArc.centroid(d) + ")"; })
+			.attr("dy", ".35em")
+		        .style("font-weight","bold")
+			.text(function(d) { return d.data.weight*100 +"%" });	  	
+
+		  
+		  //g1.append("g")
+			//	.attr("class","legend")
+			//	.attr("transform", "translate(" + ((width)/2 - XOffset) + "," + ( YOffset - ((height) / 2) ) + ")")
+			//	.style("font-size","15px")
+			//	.attr("data-style-padding",10)
+			//	.call(d3.legend);	  
+			  
+		
+	}
+
+function refreshMktvsPfReturns( benchmark ){
+	var margin = {top: 20, right: 10, bottom: 10, left: 10},
+	width = parseFloat( $("#BarContainer").css("width") ) - margin.left - margin.right,
+	height = parseFloat( $("#BarContainer").css("height") ) - margin.top - margin.bottom;
+	var bmName = '';
+
+	if (benchmark) 
+		bmName = 'Market Returns('+benchmark+')';
+	else
+		bmName = 'Market Returns(NIFTY)';
+			
+	$("#BarContainer").empty();	
+	
+	var x = d3.scale.linear()
+		.range([width, 0]);
+
+	var y = d3.scale.ordinal()
+		.rangeRoundBands([0, height], .5);
+
+	var tip = d3.tip()
+  		.attr('class', 'tooltip tooltip-top')
+  		.offset([0, 0 ])
+  		.html(function(d) {
+			if( d.value < 0)
+    				return " <strong><span style='color:red'>" + ( (Math.round(d.value*100)/100)*100 + "%" ) + "</span></strong>";
+			else
+    				return " <strong><span style='color:green'>" + ( (Math.round(d.value*100)/100)*100 + "%" ) + "</span></strong>";
+  		})
+
+	var xAxis = d3.svg.axis()
+		.scale(x)
+		.innerTickSize(-height)
+		.tickValues([-1.5,-1,-0.5,-0.3,-0.15,0,0.15,0.3,0.5,1,2])
+		.tickFormat(function(d) { return (Math.round(d*100)/100)*100 + "%"; })
+		.orient("top");
+
+	var svg = d3.select("#BarContainer").append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+	    .append("g")
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	svg.call(tip);
+	//d3.tsv("data.tsv", type, function(error, data) {
+	var data = [
+                                {name: bmName,  value: BenchmarkReturns},
+                                {name: 'Portfolio Returns',  value: pfReturns}
+                        ];
+	data.forEach(function(d) {
+					d.value = parseFloat(d.value);
+				  });
+	
+	
+	  var mxVal = d3.max(data, function(d) { return d.value; });
+	  var mnVal = d3.min(data, function(d) { return d.value; });
+	  console.log('munawar '+mxVal+' '+d3.min(data, function(d) { return d.value; }));	
+	  //if max also is < 0 then domain needs to start from a 0.05 or something ..else ugliness
+	  if (mxVal > 0)
+		x.domain([ mnVal , mxVal ]).nice();
+	  else
+		x.domain([ mnVal , 0 ]).nice();
+			
+	  y.domain(data.map(function(d) { return d.name; }));
+
+	  if( svg.selectAll("svg").empty() ){
+	  	console.log('WHAMM ');
+	  }else{
+	  	console.log('WHAMM BALLS ');
+	  }	 
+	
+	
+
+	  svg.selectAll(".bar")
+		  .data(data)
+		  .enter().append("rect")
+		  .attr("class", function(d) { return d.value < 0 ? "bar negative" : "bar positive"; })
+		  //.attr("x", function(d) { return x(Math.min(0, d.value)); })
+		  .attr("x", function(d) { return d.value < 0 ? x(0) : x(d.value); })
+		  .attr("y", function(d) { return y(d.name); })
+		  .attr("width", function(d) { return Math.abs(x(d.value) - x(0)); })
+		  .attr("height", y.rangeBand())
+		  .on('mouseover', tip.show)
+      		  .on('mouseout', tip.hide)
+		  .style("fill", function(d,i) { return d.value < 0 ? "red" : "green"; } )
+		  .style('opacity', 0.8);
+
+
+	  svg.append("g")
+		  .attr("class", "x axis")
+		  .call(xAxis);
+
+	  svg.append("g")
+		  .attr("class", "y axis")
+		  .append("line")
+		  .attr("x1", x(0))
+		  .attr("x2", x(0))
+		  .attr("y2", height);
+
+	  svg.append("g")
+	      .selectAll("text")
+		  .data(data)
+		  .enter().append("text")		
+		  .attr("x", function(d) { return d.value < 0 ? x(0) : x(d.value); })
+		  .attr("y", function(d) { return y(d.name)+y.rangeBand()+10; })
+		  .attr("dy", ".35em")
+		  .style("font-size", "15px" )
+		  .style("color", "#000" )
+		  .text(function(d) { return d.name; });	  
+		  
+		 
+	
+	  svg.append("foreignObject")
+		.attr({
+                            'x': width-10,
+                            'y': height-10})
+		.html("<p id="+"\"innerRRP\""+"<span class="+"\"tooltip tooltip-effect-1\""+"><span class="+"\"tooltip-item\""+">Portfolio Vs. Mkt.</span><span class="+"\"tooltip-content-small clearfix\""+"><span class="+"\"tooltip-text\""+">Compares the benchmarks returns with the returns generated by your portfolio for the selected time frame. The portfolio returns are calculated by multiplying each stock's returns with their corresponding weight in the portfolio </span></span></span></p>");
+	//});
+
+	function type(d) {
+	  d.value = +d.value;
+	  return d;
+	}
+}
+
+function refreshMarketTopAssets (){
+
+	var margin = {top: 20, right: 10, bottom: 10, left: 10},
+	width = parseFloat( $("#TopSectorMktContainer").css("width") ) - margin.left - margin.right,
+	height = parseFloat( $("#TopSectorMktContainer").css("height") ) - margin.top - margin.bottom;
+	d3.selectAll("#TopSectorMktContainer svg").remove();	
+						
+	var x = d3.scale.linear()
+		.range([width, 0]);
+
+	var y = d3.scale.ordinal()
+		.rangeRoundBands([0, height], .5);
+
+	var xAxis = d3.svg.axis()
+		.scale(x)
+		.innerTickSize(-height)
+		.tickValues([-1.5,-1,-0.5,-0.3,-0.15,0,0.15,0.3,0.5,1,2])
+		.tickFormat(function(d) { return (Math.round(d*100)/100)*100 + "%"; })
+		.orient("top");
+
+	var tip = d3.tip()
+  		.attr('class', 'tooltip tooltip-top')
+  		.offset([0, 0 ])
+  		.html(function(d) {
+			if( d.value < 0)
+    				return " <strong><span style='color:red'>" + ( (Math.round(d.value*100)/100)*100 + "%" ) + "</span></strong>";
+			else
+    				return " <strong><span style='color:green'>" + ( (Math.round(d.value*100)/100)*100 + "%" ) + "</span></strong>";
+  		})
+
+
+	var svg = d3.select("#TopSectorMktContainer").append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+	    .append("g")
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	svg.call(tip);
+	//d3.tsv("data.tsv", type, function(error, data) {
+	data = bar1;
+	data.forEach(function(d) {
+					d.value = parseFloat(d.value);
+				  });
+	
+
+	data = bar1.sort(function (a, b) {
+   		 return b.value - a.value;
+	});
+	
+	  var mxVal = d3.max(data, function(d) { return d.value; });
+          var mnVal = d3.min(data, function(d) { return d.value; });
+          console.log('munawar '+mxVal+' '+d3.min(data, function(d) { return d.value; }));
+          //if max also is < 0 then domain needs to start from a 0.05 or something ..else ugliness
+          if (mxVal > 0)
+                x.domain([ mnVal , mxVal ]).nice();
+          else
+                x.domain([ mnVal , 0 ]).nice();	
+	  
+	  y.domain(data.map(function(d) { return d.name; }));
+
+	  console.log('DOGGIE '+width+' '+x(0));
+
+	  svg.selectAll(".bar")
+		  .data(data)
+		  .enter().append("rect")
+		  .attr("class", function(d) { return d.value < 0 ? "bar negative" : "bar positive"; })
+		  //.attr("x", function(d) { return x(Math.min(0, d.value)); })
+		  .attr("x", function(d) { return d.value < 0 ? x(0) : x(d.value); })
+		  .attr("y", function(d) { return y(d.name); })
+		  .attr("width", function(d) { return Math.abs(x(d.value) - x(0)); })
+		  .attr("height", y.rangeBand())
+		  .on("click", function(d) { alert(d.value); })
+		  .on('mouseover', tip.show)
+      		  .on('mouseout', tip.hide)
+		  .style("fill", function(d,i) { return d.value < 0 ? "red" : "green"; } )
+		  .style('opacity', 0.8);
+
+	  svg.append("g")
+		  .attr("class", "x axis")
+		  .call(xAxis);
+
+	  svg.append("g")
+		  .attr("class", "y axis")
+		  .append("line")
+		  .attr("x1", x(0))
+		  .attr("x2", x(0))
+		  .attr("y2", height);
+		  
+	  svg.append("g")
+	      .selectAll("text")
+		  .data(data)
+		  .enter().append("text")		
+		  .attr("x", function(d) { return d.value < 0 ? x(0) : x(d.value); })
+		  .attr("y", function(d) { return y(d.name)+y.rangeBand()+10; })
+		  .attr("dy", ".35em")
+		  .style("font-size", "15px" )
+		  .style("color", "#000" )
+		  .text(function(d) { return d.name; });	  
+	
+		  
+
+	function type(d) {
+	  d.value = +d.value;
+	  return d;
+	}
+			  
+	  svg.append("foreignObject")
+		.attr({
+                            'x': width-20,
+                            'y': height-10})
+		.html("<p id="+"\"innerR3P\""+"<span class="+"\"tooltip tooltip-effect-1\""+"><span class="+"\"tooltip-item\""+">Top Assets</span><span class="+"\"tooltip-content-small clearfix\""+"><span class="+"\"tooltip-text\""+">Lists the top 5 sectors, ordered by their market weights over the corresponding time frame.The returns you see here are based on a proxy index for the sector.For e.g. Auto sector will be represented by CNX Auto, Pharma by CNX Pharma etc. The idea is that if you hold the top sectors by weight and within them the top stocks by market weight in roughly the same ratio, your returns will be closer to the markets</span></span></span></p>");
+}
+
+function refreshPfTopAssets(){
+
+	var margin = {top: 20, right: 10, bottom: 10, left: 10},
+	width = parseFloat( $("#TopSectorPfContainer").css("width") ) - margin.left - margin.right,
+	height = parseFloat( $("#TopSectorPfContainer").css("height") ) - margin.top - margin.bottom;
+	d3.selectAll("#TopSectorPfContainer svg").remove();	
+			
+	var x = d3.scale.linear()
+		.range([width, 0]);
+
+	var y = d3.scale.ordinal()
+		.rangeRoundBands([0, height], .5);
+
+	var xAxis = d3.svg.axis()
+		.scale(x)
+		.innerTickSize(-height)
+		.tickValues([-1.5,-1,-0.5,-0.3,-0.15,0,0.15,0.3,0.5,1,2])
+		.tickFormat(function(d) { return (Math.round(d*100)/100)*100 + "%"; })
+		.orient("top");
+
+	var tip = d3.tip()
+  		.attr('class', 'tooltip tooltip-top')
+  		.offset([0, 0 ])
+  		.html(function(d) {
+			if( d.value < 0)
+    				return " <strong><span style='color:red'>" + ( (Math.round(d.value*100)/100)*100 + "%" ) + "</span></strong>";
+			else
+    				return " <strong><span style='color:green'>" + ( (Math.round(d.value*100)/100)*100 + "%" ) + "</span></strong>";
+  		})
+
+	var svg = d3.select("#TopSectorPfContainer").append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+	    .append("g")
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	svg.call(tip);
+	//d3.tsv("data.tsv", type, function(error, data) {
+	data = bar2;
+	data.forEach(function(d) {
+					d.value = parseFloat(d.value);
+				  });
+
+	data = bar2.sort(function (a, b) {
+   		 return b.value - a.value;
+	});
+	
+	  var mxVal = d3.max(data, function(d) { return d.value; });
+          var mnVal = d3.min(data, function(d) { return d.value; });
+          console.log('munawar '+mxVal+' '+d3.min(data, function(d) { return d.value; }));
+          //if max also is < 0 then domain needs to start from a 0.05 or something ..else ugliness
+          if (mxVal > 0)
+                x.domain([ mnVal , mxVal ]).nice();
+          else
+                x.domain([ mnVal , 0 ]).nice();	
+	  
+	  y.domain(data.map(function(d) { return d.name; }));
+
+	  svg.selectAll(".bar")
+		  .data(data)
+		  .enter().append("rect")
+		  .attr("class", function(d) { return d.value < 0 ? "bar negative" : "bar positive"; })
+		  //.attr("x", function(d) { return x(Math.min(0, d.value)); })
+		  .attr("x", function(d) { return d.value < 0 ? x(0) : x(d.value); })
+		  .attr("y", function(d) { return y(d.name); })
+		  .attr("width", function(d) { return Math.abs(x(d.value) - x(0)); })
+		  .attr("height", y.rangeBand())
+		  .on('mouseover', tip.show)
+      		  .on('mouseout', tip.hide)
+		  .on("click", function(d) { alert(d.value); })
+		  .style("fill", function(d,i) { return d.value < 0 ? "red" : "green"; } )
+		  .style('opacity', 0.8);
+
+	  svg.append("g")
+		  .attr("class", "x axis")
+		  .call(xAxis);
+
+	  svg.append("g")
+		  .attr("class", "y axis")
+		  .append("line")
+		  .attr("x1", x(0))
+		  .attr("x2", x(0))
+		  .attr("y2", height);
+		  
+	  svg.append("g")
+	      .selectAll("text")
+		  .data(data)
+		  .enter().append("text")		
+		  .attr("x", function(d) { return d.value < 0 ? x(0) : x(d.value); })
+		  .attr("y", function(d) { return y(d.name)+y.rangeBand()+10; })
+		  .attr("dy", ".35em")
+		  .style("font-size", "15px" )
+		  .style("color", "#000" )
+		  .text(function(d) { return d.name; });	  
+		  
+
+	function type(d) {
+	  d.value = +d.value;
+	  return d;
+	}
+	  svg.append("foreignObject")
+		.attr({
+                            'x': width-20,
+                            'y': height-10})
+		.html("<p id="+"\"innerR4P\""+"<span class="+"\"tooltip tooltip-effect-1\""+"><span class="+"\"tooltip-item\""+">Portfolio Assets</span><span class="+"\"tooltip-content-small clearfix\""+"><span class="+"\"tooltip-text\""+">Lists all the sectors / stocks in your portfolio, ordered by returns for the corresponding period. The returns here are calculated by taking the sectoral stocks in your portfolio and multiplying their weights with their returns. For e.g. if you had A and B from the Auto sector with allocations of 10% and 20% and returns of 5% and 10%, your sectoral returns would be (10% x 5%)+(20% x 10%) = 0.5%+2% = 2.5%. If you notice the summation of all sectoral returns in this bar graph should equal the portfolio returns shown in the bar graph right above! </span></span></span></p>");
+}
+
+</script>
+
+	<div id="PieBarContainer">	
+	<div id="outer">
+		<div id="inner">
+			<script> refreshFirstPie(); </script>
+		</div>
+			<p id="innerP"><span class="tooltip tooltip-effect-1"><span class="tooltip-item">Portfolio Asset Weights</span><span class="tooltip-content-small clearfix"><span class="tooltip-text">The doughnut chart shows the sectoral weights in your portfolio. It takes all the stocks in your portfolio, finds the amount invested in each and then groups them by the stocks respective sectors.</span></span></span></p>		
+	</div>
+
+	<div id="outerR">
+		<div id="innerR">
+			<script> refreshSecondPie(); </script>
+		</div>
+			<p id="innerRP"><span class="tooltip tooltip-effect-1"><span class="tooltip-item">Market Weights</span><span class="tooltip-content-small clearfix"><span class="tooltip-text">The doughnut chart shows the corresponding market weight of the sectors in your portfolio. So if a certain asset has a higher weight in your portfolio vis a vis the market, it will occupy a bigger area in the previous doughnut. As you can see same assets have the SAME color in both doughnuts </span></span></span></p>		
+	</div>
+
+
+	<div id="BarContainer">
+		<script>
+			refreshMktvsPfReturns();
+		</script>
+	</div>
+	
+</div>
+
+
+
+<div id="PieBarGyanContainer">
+
+	<div id="TopSectorMktContainer">
+		<script>
+			refreshMarketTopAssets();
+		</script>	
+	</div>
+
+	<div id="GyanContainer">
+		<h2 id="GyanHdr">
+		<span class="tooltip tooltip-effect-1"><span class="tooltip-item">Portfolio Performance Atribution</span><span class="tooltip-content clearfix"><span class="tooltip-text">
+                A methodology that allows you to explain the returns of your portfolio by comparing it to a benchmark and then figuring out if your excess/lower returns were because you were overweight / underweight a sector / stock. Then it also checks if your stock selection had something to do with excess/lower returns. This is performed either quarterly, semi annually or annually. The current module is performing it for the last full year beginning today. Feel free to choose other time frames. 
+		</span></span></span> 
+		</h2>
+			<p id="GyanPara">PlaceHolder</p>
+	<script>
+	document.getElementById("GyanPara").innerHTML = window.message;
+	</script>
+		
+	</div>
+	<div id="TopSectorPfContainer">
+	
+	<script>
+		refreshPfTopAssets();			  
+	</script>	
+	
+	</div>
+</div>	
+<script>
+var timerEnd = Date.now();
+console.log('WHY ? '+timerEnd);
+</script>
+</body>
