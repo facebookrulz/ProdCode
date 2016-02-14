@@ -382,15 +382,17 @@
 	}
 	
 	#TopSectorMktContainer{
-	padding:15px 20px; 
+	height:90%;
+    width:90%;
 	float:left;
-	height:100%;
-    width:22.5%;
-	margin-left: 50px;
-	/*margin-top:100px;*/
-	box-shadow: 10px 10px 5px #888888;
-	/*border-radius: 25px;*/
-    /*border: 2px solid #73AD21;*/
+	position: relative;
+	}
+
+	#TopSectorPfContainer{
+	height:90%;
+    width:90%;
+	float:left;
+	position: relative;
 	}
 	
 	#GyanContainer{
@@ -411,39 +413,22 @@
 		height: 5%;
 	}
 	
-	#TopSectorPfContainer{
-	padding:15px 20px; 
-	float:left;
-	height:100%;
-    width:22.5%;
-	
-	/*margin-top:100px;*/
-	box-shadow: 10px 10px 5px #888888;
-	/*border-radius: 25px;*/
-    /*border: 2px solid #73AD21;*/
-	}
-	
 	#PieBarContainer{
 		width: 100%;
 		height: 30%;
 	}
 	
 	#BarContainer{
-	padding:15px 20px; 
 	float:left;
-	height:100%;
-    width:25%;
+	height:90%;
+    	width:90%;
 	
-	/*margin-top:100px;*/
-	box-shadow: 10px 10px 5px #888888;
-	/*border-radius: 25px;*/
-    /*border: 2px solid #73AD21;*/
 	}
 
 	#inner{
     	
-	height:80%;
-    	width:80%;
+	height:90%;
+    	width:90%;
 	position: relative;
 	float:left;
 	/*border-radius: 25px;*/
@@ -453,7 +438,6 @@
 	float:right;
 	position: relative;
 	margin-right:5%;
-	margin-top:5%;
 	font-size: 18px;
 	}
 	
@@ -461,7 +445,6 @@
 	float:right;
 	position: relative;
 	margin-right:5%;
-	margin-top:7.5%;
 	font-size: 18px;
 	}
 
@@ -469,7 +452,6 @@
 	float:right;
 	position: relative;
 	margin-right:5%;
-	margin-top:-5%;
 	font-size: 18px;
 	}
 
@@ -477,7 +459,6 @@
 	float:right;
 	position: relative;
 	margin-right:5%;
-	margin-top:-7.5%;
 	font-size: 18px;
 	}
 
@@ -485,7 +466,6 @@
 	float:right;
 	position: relative;
 	margin-right:5%;
-	margin-top:-7.5%;
 	font-size: 18px;
 	}
 
@@ -501,10 +481,43 @@
     /*border: 2px solid #73AD21;*/
 	}
 
+	#outerTopSectorMktContainer{
+    padding:15px 20px; 
+	float:left;
+	height:100%;
+    width:22.5%;
+	margin-left:50px;
+	/*margin-top:100px;*/
+	box-shadow: 10px 10px 5px #888888;
+	/*border-radius: 25px;*/
+    /*border: 2px solid #73AD21;*/
+	}
+
+	#outerTopSectorPfContainer{
+    padding:15px 20px; 
+	float:left;
+	height:100%;
+    width:22.5%;
+	/*margin-top:100px;*/
+	box-shadow: 10px 10px 5px #888888;
+	/*border-radius: 25px;*/
+    /*border: 2px solid #73AD21;*/
+	}
+
+	#outerBar{
+    padding:15px 20px; 
+	float:left;
+	height:100%;
+    width:25%;
+	/*margin-top:100px;*/
+	box-shadow: 10px 10px 5px #888888;
+	/*border-radius: 25px;*/
+    /*border: 2px solid #73AD21;*/
+	}
 
 	#innerR{
-	height:80%;
-    width:80%;
+	height:90%;
+    width:90%;
 	float:left;
 	position: relative;
 	}
