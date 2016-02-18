@@ -1,0 +1,1161 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<body>
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/spin.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/jquery-ui.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/component.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/buttons_tymp.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/table_tymp.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/PfStatus.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/set1.css' %}">
+<script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/jquery.js' %}"></script> 
+<script src="{% static 'jquery-ui-1.11.4.custom/d3.min.js' %}"></script>
+<script src="{% static 'jquery-ui-1.11.4.custom/jquery-ui.js' %}"></script>
+<script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/d3-legend.js' %}"></script>
+<script src="{% static 'jquery-ui-1.11.4.custom/jquery.ui.slider.js' %}"></script> 
+<script src="{% static 'jquery-ui-1.11.4.custom/snap.svg-min.js' %}"></script>
+<link href='https://fonts.googleapis.com/css?family=Bitter:400,400italic' rel='stylesheet' type='text/css'>
+
+
+<script>
+//global VARIABLES
+var timerStart = Date.now();
+console.log('BEGIN ? '+timerStart);
+
+	window.master_array = new Array();	  
+	window.bm_array = new Array();	  
+	window.bm_Data_ = [];
+	//this will store the fund selected by the user
+	window.current_MF_Data_ = [];
+	window._BM_MF_FromDt_idx = -1;
+	window._BM_MF_ToDt_idx = -1; 
+	var colors = d3.scale.category20();
+	//to be read from a static file
+	
+	window.BM1 = 'CNX Nifty';
+	window.BM2 = 'CNX Midcap';
+	window.BM3 = 'CNX Smallcap';
+	
+	window.dispCircleRadius = 8;
+	window.dispBMName = '';	
+	window.dispMFName = '';
+	// will enable removal of ite ms via click on legend
+	window.RemoveLegendClick = 1;
+	
+	window.pieRadiusDiff = 80;
+	window.doughRadiusOuterDiff = 10;
+	window.doughRadiusInnerDiff = 70;
+	window.XOffset = 150;
+	window.YOffset = 25;
+	
+	window.Mnth = {};
+	window.MnthRev = {};
+	
+	Mnth["Jan"]='01';
+	Mnth["Feb"]='02';
+	Mnth["Mar"]='03';
+	Mnth["Apr"]='04';
+	Mnth["May"]='05';
+	Mnth["Jun"]='06';
+	Mnth["Jul"]='07';
+	Mnth["Aug"]='08';
+	Mnth["Sep"]='09';
+	Mnth["Oct"]='10';
+	Mnth["Nov"]='11';
+	Mnth["Dec"]='12';
+	
+	
+	MnthRev[1]='Jan';
+	MnthRev[2]='Feb';
+	MnthRev[3]='Mar';
+	MnthRev[4]='Apr';
+	MnthRev[5]='May';
+	MnthRev[6]='Jun';
+	MnthRev[7]='Jul';
+	MnthRev[8]='Aug';
+	MnthRev[9]='Sep';
+	MnthRev[10]='Oct';
+	MnthRev[11]='Nov';
+	MnthRev[12]='Dec';
+	
+	window.isDragging = false;
+	//given that both BM and MF will have the same Date range 
+	//we can read the current BM values itself
+	initGlobalSetBM();
+
+	function findIndex(findDt){
+		
+		for(ctr = 0 ;ctr < bm_Data_.length; ctr++){
+			if( (bm_Data_[ctr].Date).getTime() >= findDt.getTime() )
+				return ctr;
+		}
+		return -1;
+	}
+	
+	// to be called initially
+	function initGlobalSetBM(){
+	
+			//FOR NOW use 0 index .. but we need to have a map
+			// for MF data and bm index
+
+			window.doughRec = {{ll_dough|safe}};
+			window.doughRecStock = {{ll_dough1|safe}};
+			window.stockAlloc = {{ll_alloc|safe}};
+			window.idxRec = {{ll_ap|safe}};
+			window.stockRec = {{ll_line|safe}};
+	
+			calcPfLine();
+			calcCompIndex();
+			calcPeriodicReturns();
+		
+			//input dough
+			doughList = Object.keys(doughRec);
+			doughListStock = Object.keys(doughRecStock);
+			window.doughIP = [];
+			window.doughStockIP = [];
+
+			for(cr =0 ; cr < doughList.length; cr++){
+				var singleObj = {};
+				singleObj['asset'] = doughList[cr];
+				singleObj['share'] = doughRec[doughList[cr]]; 
+				doughIP.push(singleObj);
+			}	
+
+			for(cr =0 ; cr < doughListStock.length; cr++){
+				var singleObj = {};
+				singleObj['asset'] = doughListStock[cr];
+				singleObj['share'] = doughRecStock[doughListStock[cr]]; 
+				doughStockIP.push(singleObj);
+			}
+	
+			if(window._BM_MF_FromDt_idx == -1 && window._BM_MF_ToDt_idx == -1){
+				_BM_MF_FromDt_idx = Math.round( bm_Data_.length*(0.5) );	
+				_BM_MF_ToDt_idx = bm_Data_.length-1;	  
+			}
+		
+	}
+
+	var _sort_asc = function (date1, date2) {
+  // This is a comparison function that will result in dates being sorted in
+  // ASCENDING order. As you can see, JavaScript's native comparison operators
+  // can be used to compare dates. This was news to me.
+  		if (date1 > date2) return 1;
+  		if (date1 < date2) return -1;
+  		return 0;
+	}
+
+	function calcPfLine(){
+		stock = '';
+		window.dateDict = {};
+		window.pfForMo = {};
+		window.NiftyForMo = {};
+		window.MCForMo = {};
+		window.SCForMo = {};
+		window.pfChange = [];
+		window.bm_Data_ = [];
+		window.minClose = 0;
+		window.maxClose = 0;
+		
+		StockMaster = {};
+		StockDict = {};
+
+		for (ctr = 0; ctr < stockRec.length; ctr++){
+			if( (Object.keys(StockDict )).length > 0 && stockRec[ctr].Symbol != stock ){
+				StockMaster[stock] = StockDict;
+				StockDict = {};
+			} 
+			stock = stockRec[ctr].Symbol;
+			// the below is just to ensure i get a distinct list of all dates
+			dateDict[stockRec[ctr].Date] = 1;
+			StockDict[stockRec[ctr].Date] = stockRec[ctr].perChg;
+		}
+		//the last dict always will go here, given that the loop runs out before comp
+		StockMaster[stock] = StockDict;
+		//console.log( 'Num '+(Object.keys(StockMaster)).length+' '+StockMaster['ASHOKLEY'] );
+		
+		var dateList = Object.keys(dateDict);
+		dateList = dateList.sort(_sort_asc);
+
+		var stockList = Object.keys(stockAlloc);
+		cumuChg = 0.0;
+		// now find out daily returns line
+		for (cr = 0 ; cr < dateList.length ; cr++){
+			dailyPfReturn = 0.0;	
+			for (inn = 0 ; inn < stockList.length ; inn ++){
+				locDict = StockMaster[stockList[inn]];
+				dailyPfReturn = dailyPfReturn + parseFloat ( locDict[dateList[cr]] )*parseFloat (stockAlloc[stockList[inn]]);
+			}
+			if( isNaN(dailyPfReturn) )dailyPfReturn=0.0;
+			var singleObj = {};
+			singleObj['asset'] = 'Portfolio';
+			singleObj['Date'] = new Date(dateList[cr]);
+			singleObj['daily'] = dailyPfReturn;
+			singleObj['cumuChg'] = parseFloat (dailyPfReturn) + parseFloat(cumuChg);
+			//console.log(' PF '+singleObj['asset']+' '+singleObj['Date']+' '+singleObj['cumuChg']);
+			pfForMo[new Date(dateList[cr])] = parseFloat (dailyPfReturn) + parseFloat(cumuChg);
+			pfChange.push(singleObj);
+			cumuChg = dailyPfReturn + cumuChg;
+			if( cumuChg > maxClose ) maxClose = cumuChg;
+			if( cumuChg < minClose ) minClose = cumuChg;
+		}
+		//last value will be lost
+		bm_Data_ = pfChange;
+	}
+
+	function calcPeriodicReturns(){
+		min = (d3.min(pfChange , function(d) { return d.Date; })).getTime();
+		max = (d3.max(pfChange , function(d) { return d.Date; })).getTime();
+		diff = max - min;
+		DateList = Object.keys(pfForMo);
+		maxIdx = DateList.length - 1;
+		msDay = 60*60*24*1000;
+		window.tableArr = [];
+
+		mo1 = pfForMo[DateList[maxIdx]] -  pfForMo[DateList[maxIdx-22]];
+		mo3 = pfForMo[DateList[maxIdx]] -  pfForMo[DateList[maxIdx-67]];
+		mo6 = pfForMo[DateList[maxIdx]] -  pfForMo[DateList[maxIdx-113]];
+		mo12 = pfForMo[DateList[maxIdx]] -  pfForMo[DateList[maxIdx-225]];
+		
+		mo11 = NiftyForMo[DateList[maxIdx]] -  NiftyForMo[DateList[maxIdx-22]];
+		mo31 = NiftyForMo[DateList[maxIdx]] -  NiftyForMo[DateList[maxIdx-67]];
+		mo61 = NiftyForMo[DateList[maxIdx]] -  NiftyForMo[DateList[maxIdx-113]];
+		mo121 = NiftyForMo[DateList[maxIdx]] -  NiftyForMo[DateList[maxIdx-225]];
+
+		if ( (maxIdx - 675) > 0){	
+			mo36 = pfForMo[DateList[maxIdx]] -  pfForMo[DateList[maxIdx-675]];
+			mo361 = NiftyForMo[DateList[maxIdx]] -  NiftyForMo[DateList[maxIdx-675]];
+			var singleObj = {};
+			singleObj['period'] = '3 Yrs';
+			singleObj['assetR'] = mo36;
+			singleObj['mktR'] = mo361;
+			tableArr.push(singleObj);
+		}	
+
+		if ( (maxIdx - 1125) > 0){	
+			mo60 = pfForMo[DateList[maxIdx]] -  pfForMo[DateList[maxIdx-1125]];
+			mo601 = NiftyForMo[DateList[maxIdx]] -  NiftyForMo[DateList[maxIdx-1125]];
+			var singleObj = {};
+			singleObj['period'] = '5 Yrs';
+			singleObj['assetR'] = mo60;
+			singleObj['mktR'] = mo601;
+			tableArr.push(singleObj);
+		}	
+
+			var singleObj = {};
+			singleObj['period'] = '1 Mnth';
+			singleObj['assetR'] = mo1;
+			singleObj['mktR'] = mo11;
+			tableArr.push(singleObj);
+
+			var singleObj = {};
+			singleObj['period'] = '3 Mnth';
+			singleObj['assetR'] = mo3;
+			singleObj['mktR'] = mo31;
+			tableArr.push(singleObj);
+
+			var singleObj = {};
+			singleObj['period'] = '6 Mnth';
+			singleObj['assetR'] = mo6;
+			singleObj['mktR'] = mo61;
+			tableArr.push(singleObj);
+			
+			var singleObj = {};
+			singleObj['period'] = '1 Yr';
+			singleObj['assetR'] = mo12;
+			singleObj['mktR'] = mo121;
+			tableArr.push(singleObj);
+	}
+
+	function calcCompIndex(){
+		StockMaster = {};
+		StockDict = {};
+		idx = '';
+		window.idxChange = [];
+		window.idxMaster = {};
+		for (ctr = 0; ctr < idxRec.length; ctr++){
+			if( (Object.keys(StockDict )).length > 0 && idxRec[ctr].idx_name != idx ){
+				StockMaster[idx] = StockDict;
+				StockDict = {};
+			} 
+			idx = idxRec[ctr].idx_name;
+			StockDict[idxRec[ctr].idx_dt] = idxRec[ctr].perChg;
+		}
+		StockMaster[idx] = StockDict;
+
+
+
+		var dateList = Object.keys(dateDict);
+		dateList = dateList.sort(_sort_asc);
+		var idxList = Object.keys(StockMaster);
+		var inn = 0;
+		// now find out daily returns line
+	    for (inn = 0 ; inn < idxList.length; inn++){
+		cumuChg = 0;
+		for (cr = 0 ; cr < dateList.length ; cr++){
+
+			sml = StockMaster[idxList[inn]];
+			dailyPfReturn = parseFloat ( sml[dateList[cr]] );
+			if( isNaN(dailyPfReturn) )dailyPfReturn=0.0;
+			
+			var singleObj = {};
+                        singleObj['asset'] = idxList[inn];
+			singleObj['Date'] = new Date(dateList[cr]);
+                        singleObj['daily'] = dailyPfReturn;
+			singleObj['cumuChg'] = parseFloat (dailyPfReturn) + parseFloat(cumuChg);
+			//console.log(' IDX '+singleObj['asset']+' '+singleObj['Date']+' '+singleObj['daily']+' '+singleObj['cumuChg']);
+			if( idxList[inn] == BM1 ){
+				NiftyForMo[new Date(dateList[cr])] = parseFloat (dailyPfReturn) + parseFloat(cumuChg);
+			}	
+                        idxChange.push(singleObj);
+			cumuChg = dailyPfReturn + cumuChg;
+			if( cumuChg > maxClose ) maxClose = cumuChg;
+			if( cumuChg < minClose ) minClose = cumuChg;
+		}
+			console.log(' IDX '+ idxList[inn]+' '+ idxChange.length);
+		idxMaster[idxList[inn]] = idxChange;
+		window.idxChange = [];
+	    }
+	}	 
+
+	function retDailyData( data, dt){
+		console.log('DIG '+dt);
+		for(ctr = 0 ; ctr < data.length; ctr++)
+		{	
+			lcDt = data[ctr].Date;
+			if ( dt.getFullYear() == lcDt.getFullYear() && dt.getMonth() == lcDt.getMonth() && dt.getDate() == lcDt.getDate()  ) {
+					console.log('DIG1 '+dt+lcDt);
+					var per = data[ctr];
+					 vik = Math.round(per.daily*100*100)/100  ;
+					 if (vik > 0)
+						return "<p style="+"\"color:black\""+">"+per.asset+": "+ vik + "% </p>"; 
+					 else
+						return "<p style="+"\"color:red\""+">"+per.asset+": "+ vik + "% </p>"; 
+			}	
+		}
+		return "<p style="+"\"color:lawngreen\""+">"+per.asset+": Unchanged</p>"; 
+	}
+
+	function calcCumuChg( timeSeries  ){
+		cumuChg = 0.0;
+		locArr = [];
+		for (ctr = 0 ; ctr < timeSeries.length ; ctr++){
+			var singleObj = {};
+                        singleObj['asset'] = timeSeries[ctr].asset;
+			singleObj['Date'] = timeSeries[ctr].Date;
+                        singleObj['daily'] = timeSeries[ctr].daily;
+			singleObj['cumuChg'] = cumuChg;
+			cumuChg += timeSeries[ctr].daily;
+			locArr.push(singleObj);
+		}
+	return locArr;	
+	}	
+	
+	
+	function _reScaleBM_MF_axes( area) {
+			//both slices will have window prefix since we intend to use them outside this function	
+			//defensive coding
+			sliced_bm_Data_ = pfChange;	
+			bmNifty = idxMaster[BM1];	
+			bmMC = idxMaster[BM2];	
+			bmSC = idxMaster[BM3];	
+
+			if(_BM_MF_FromDt_idx >= 0 && _BM_MF_ToDt_idx >= 0){
+				sliced_bm_Data_ = calcCumuChg ( sliced_bm_Data_.slice( _BM_MF_FromDt_idx, _BM_MF_ToDt_idx ) );
+				bmNifty = calcCumuChg (  bmNifty.slice( _BM_MF_FromDt_idx, _BM_MF_ToDt_idx ) );
+				bmMC = calcCumuChg ( bmMC.slice( _BM_MF_FromDt_idx, _BM_MF_ToDt_idx ) );
+				bmSC = calcCumuChg ( bmSC.slice( _BM_MF_FromDt_idx, _BM_MF_ToDt_idx ) );
+			}	
+			else{
+			
+				sliced_bm_Data_.forEach(function(d) {
+					d.Date = new Date(d.Date);
+					d.cumuChg = +d.cumuChg;
+				  });
+				bmNifty.forEach(function(d) {
+					d.Date = new Date(d.Date);
+					d.cumuChg = +d.cumuChg;
+				  });
+				bmMC.forEach(function(d) {
+					d.Date = new Date(d.Date);
+					d.cumuChg = +d.cumuChg;
+				  });
+
+				bmSC.forEach(function(d) {
+					d.Date = new Date(d.Date);
+					d.cumuChg = +d.cumuChg;
+				  });
+			}
+
+			var locDtList = [];
+			var locChg = [];
+			locChg.push( d3.min(sliced_bm_Data_, function(d) { return d.cumuChg; }));		
+			locChg.push( d3.max(sliced_bm_Data_, function(d) { return d.cumuChg; }));		
+			locChg.push( d3.min(bmNifty , function(d) { return d.cumuChg; }));		
+			locChg.push( d3.max(bmNifty, function(d) { return d.cumuChg; }));		
+			locChg.push( d3.min(bmMC , function(d) { return d.cumuChg; }));		
+			locChg.push( d3.max(bmMC , function(d) { return d.cumuChg; }));		
+			locChg.push( d3.min(bmSC , function(d) { return d.cumuChg; }));		
+			locChg.push( d3.max(bmSC , function(d) { return d.cumuChg; }));		
+			locChg = locChg.sort(_sort_asc);
+
+			locDtList.push( d3.min(sliced_bm_Data_, function(d) { return d.Date; }));
+			locDtList.push( d3.max(sliced_bm_Data_, function(d) { return d.Date; }));
+                        locDtList.push( d3.min(bmNifty , function(d) { return d.Date; }));
+                        locDtList.push( d3.max(bmNifty, function(d) { return d.Date; }));
+                        locDtList.push( d3.min(bmMC , function(d) { return d.Date; }));
+                        locDtList.push( d3.max(bmMC , function(d) { return d.Date; }));
+                        locDtList.push( d3.min(bmSC , function(d) { return d.Date; }));
+                        locDtList.push( d3.max(bmSC , function(d) { return d.Date; }));
+                        locDtList = locDtList.sort(_sort_asc);		
+	
+			window.minDate = locDtList[0];	
+			window.maxDate = locDtList[locDtList.length-1];	
+			window.minClose = locChg[0];	
+			window.maxClose = locChg[locChg.length-1];	
+
+			console.log('date '+minDate+' '+maxDate+' '+minClose+' '+maxClose);	
+			
+			var line = d3.svg.line()
+						.x(function(d) { return xScaler(d.Date); })
+						.y(function(d) { return yScaler(d.cumuChg); });
+
+			var svg = d3.select(area);
+			
+			//clear existing
+			svg.selectAll("path")
+			.remove();
+
+			xScaler.domain([minDate, maxDate]);
+			yScaler.domain([minClose, maxClose]);
+			
+			//Date picker - set min and max Dates for the calendar to show
+			// also setup call back function for Date closing ..if that happens
+			// then you need call this _reScaleBM_MF_axes after resetting start and end index
+				$(function() {
+						$( "#FromDt" ).datepicker( 
+							{ minDate: bm_Data_[0].Date, 
+							  maxDate: bm_Data_[bm_Data_.length-1].Date ,
+							  beforeShowDay: $.datepicker.noWeekends , 
+							  dateFormat: 'd M yy',
+							  constrainInput: true,
+							  onClose: function(selectedDate) {
+							  //need to pass via Date class since the selectedDate comes in as string
+							  //*** whenever comparing or working with DATES lets stick to conversion into Date object***
+							  if( null !== selectedDate){
+									console.log('CON11 '+new Date(selectedDate).getMonth()+new Date(selectedDate).getDate());
+									var locStore = _BM_MF_FromDt_idx;
+									_BM_MF_FromDt_idx = findIndex( new Date(selectedDate) );
+									console.log('CON1 '+locStore+' '+_BM_MF_FromDt_idx+' '+_BM_MF_ToDt_idx);
+									//set the dragslider values to the ones selected by the Date
+									if ( _BM_MF_FromDt_idx < _BM_MF_ToDt_idx) {
+										$( "#dragslider-range" ).dragslider( "values" , [ _BM_MF_FromDt_idx , _BM_MF_ToDt_idx] )
+										//now call the rescale function
+										_reScaleBM_MF_axes(".chart2");
+									}
+									else{
+										console.log("sorry from's always going to be lesser than TO!!");
+										_BM_MF_FromDt_idx = locStore;
+										$( "#FromDt" ).datepicker({ dateFormat: 'd M yy' });
+										$( "#FromDt" ).datepicker( "setDate",  bm_Data_[_BM_MF_FromDt_idx].Date );
+									}
+								}
+							  }
+							} 
+						);
+						
+				});
+				
+				$(function() {
+						$( "#ToDt" ).datepicker(
+							{ minDate: bm_Data_[0].Date, 
+							  maxDate: bm_Data_[bm_Data_.length-1].Date ,
+							  beforeShowDay: $.datepicker.noWeekends , 
+							  dateFormat: 'd M yy',
+							  onClose: function(selectedDate) {
+							  
+							  if( null !== selectedDate){
+							  	   dateConst = (selectedDate.split("/"));
+									var locStore = _BM_MF_ToDt_idx;
+									//_BM_MF_ToDt_idx = findIndex( new Date( dateConst[1]+'/'+dateConst[0]+'/'+dateConst[2] ) );
+									_BM_MF_ToDt_idx = findIndex( new Date(selectedDate) );
+									//set the dragslider values to the ones selected by the Date
+									//but also check if the end dt > start ...
+									if ( _BM_MF_FromDt_idx < _BM_MF_ToDt_idx) {
+										$( "#dragslider-range" ).dragslider( "values" , [ _BM_MF_FromDt_idx , _BM_MF_ToDt_idx] )
+										//now call the rescale function
+										_reScaleBM_MF_axes(".chart2");
+									}else{
+										console.log("sorry from's always going to be lesser than TO!!");
+										_BM_MF_ToDt_idx = locStore;
+										$( "#ToDt" ).datepicker({ dateFormat: 'd M yy' });
+										$( "#ToDt" ).datepicker( "setDate",  bm_Data_[_BM_MF_ToDt_idx].Date );
+									}
+								  }
+								
+							  }
+							} 
+						);
+				});
+				
+			
+			svg.select(".y.axis").transition().duration(500).ease("sin-in-out")  // https://github.com/mbostock/d3/wiki/Transitions#wiki-d3_ease
+                    .call(yAxis); 
+		    svg.select(".x.axis").transition().duration(500).ease("sin-in-out")  // https://github.com/mbostock/d3/wiki/Transitions#wiki-d3_ease
+                    .call(xAxis); 				
+			
+			//add benchmark
+		window.benchMarkPath =	svg.append("path")
+			  .datum(sliced_bm_Data_)
+			  .attr("class", "line")
+			  .attr("id","Portfolio")
+			  .attr("d", line)
+			  .attr("data-legend", "Portfolio")
+			  .attr("stroke","turquoise")
+			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")");
+
+		window.NiftyPath =	svg.append("path")
+			  .datum(bmNifty)
+			  .attr("class", "line")
+			  .attr("id",BM1)
+			  .attr("d", line)
+			  .attr("data-legend", BM1)
+			  .attr("stroke","lawngreen")
+			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")");
+
+		window.MCPath =	svg.append("path")
+			  .datum(bmMC)
+			  .attr("class", "line")
+			  .attr("id",BM2)
+			  .attr("d", line)
+			  .attr("data-legend", BM2)
+			  .attr("stroke","brown")
+			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")");
+
+		window.SCPath =	svg.append("path")
+			  .datum(bmSC)
+			  .attr("class", "line")
+			  .attr("id",BM3)
+			  .attr("d", line)
+			  .attr("data-legend", BM3)
+			  .attr("stroke","steelblue")
+			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")");
+			//now set to and from Date calendars and also dragslider positions
+			svg.selectAll(".legend").remove();
+			if ( _BM_MF_FromDt_idx < _BM_MF_ToDt_idx) {
+				$( "#FromDt" ).datepicker({ dateFormat: 'd M yy' });
+				$( "#ToDt" ).datepicker({ dateFormat: 'd M yy' });
+				$( "#FromDt" ).datepicker( "setDate",  bm_Data_[_BM_MF_FromDt_idx].Date );
+				
+				$( "#ToDt" ).datepicker( "setDate",  bm_Data_[_BM_MF_ToDt_idx].Date );	
+				$( "#dragslider-range" ).dragslider( "values" , [ _BM_MF_FromDt_idx , _BM_MF_ToDt_idx] )	
+			}
+			else{
+				//better error handling ..for now just console.log
+				console.log("sorry from dt's always going to be earlier than To Date ..never went to school ..sucker ?");
+			}	
+						
+			legend = svg.append("g")
+				.attr("class","legend")
+				.attr("transform","translate(80,30)")
+				.style("font-size","15px")
+				.attr("data-style-padding",10)
+				.call(d3.legend);
+			//console();	
+
+    }
+</script>
+
+<!--
+    <div id = "HDR1">
+               <p id="HeaderButton">
+		 <button class="btn btn-7 btn-7a ">Fund Of Funds</button>
+               	 <button class="btn btn-7 btn-7a ">Fund House</button>
+		 <button class="btn btn-7 btn-7a ">Fund Manager</button>
+               	 <button class="btn btn-7 btn-7a ">Synthetic Portfolios</button>
+	       </p>
+	</div>
+-->
+	
+<div id="PieBarContainer">	
+	<div id="outer">
+	<h2 id="GyanHdr">Stock Allocation</h2>	
+		<div id="inner">
+		</div>
+	</div>
+	<div id="Header">
+	<h2 id="GyanHdr">Sectoral Allocation</h2>	
+		<div id="inner1">
+		</div>
+	</div>
+	<div id="Returns">
+	
+	<table class="table1">
+                <thead>
+                    <tr>
+                        
+                        <th scope="col" abbr="Starter">Time Frame</th>
+                        <th scope="col" abbr="Medium">Portfolio Returns</th>
+                        <th scope="col" abbr="Business">NIFTY Returns</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+			<script>
+				var numRows = tableArr.length;
+				if(numRows == 5)$('#Returns .table1').css("font-size", "20px");
+				if(numRows == 6)$('#Returns .table1').css("font-size", "16px");
+				if(numRows == 7)$('#Returns .table1').css("font-size", "12px");
+				var html = '';
+				for (ctr =0; ctr < numRows; ctr++){
+					html = html + "<tr><td>"+tableArr[ctr].period+"</td>";
+					if(tableArr[ctr].assetR < 0){
+						html = html + "<td style="+"\"color:red\""+">"+Math.round( (parseFloat(tableArr[ctr].assetR)*100) )+"%</td>";
+					}
+					else{
+						html = html + "<td style="+"\"color:black\""+">"+Math.round( (parseFloat(tableArr[ctr].assetR)*100) )+"%</td>";
+					}
+
+					if(tableArr[ctr].mktR < 0){
+						html = html + "<td style="+"\"color:red\""+">"+Math.round( (parseFloat(tableArr[ctr].mktR)*100) )+"%</td>";
+					}
+					else{
+						html = html + "<td style="+"\"color:black\""+">"+Math.round( (parseFloat(tableArr[ctr].mktR)*100) )+"%</td>";
+					}
+					html = html + "</tr>";
+				}
+				var inner = document.getElementById("tbody");
+				console.log('SLACK '+html);	
+				inner.innerHTML = html;
+						
+			</script>
+		</tbody>
+                    
+    </table>
+	
+	</div>
+	
+</div>
+
+	<script>
+
+	
+
+	$(function(){
+	width = parseFloat( $("#outer").css("width") );
+	height = parseFloat( $("#outer").css("height") );
+	console.log('WODTH '+width+' '+height+' '+screen.width+' '+screen.height);
+
+	var radius = (height/2);
+	var radiusSector = (height/2)-20;
+
+	var color = d3.scale.ordinal()
+		.range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+
+		
+	var doughnutArcStock = d3.svg.arc()
+		.outerRadius(radius - doughRadiusOuterDiff)
+		.innerRadius(radius - doughRadiusInnerDiff);	
+
+	var doughnutArcSector = d3.svg.arc()
+		.outerRadius(radiusSector - doughRadiusOuterDiff)
+		.innerRadius(radiusSector - doughRadiusInnerDiff);	
+
+	var pie = d3.layout.pie()
+			.sort(null)
+			.value(function(d) { return d.share; });
+
+
+	var svg = d3.select("#inner").append("svg")
+		.attr("width", width)
+		.attr("height", height)
+		.append("g")
+		.attr("transform", "translate(" + ( (width)/2 - 30 ) + "," + ( ((height) / 2)) + ")");
+
+	var svg1 = d3.select("#inner1").append("svg")
+		.attr("width", width)
+		.attr("height", height)
+		.append("g")
+		.attr("transform", "translate(" + ( (width)/2 - 30 ) + "," + ( ((height) / 2)) + ")");
+
+	//d3.csv("data.csv", type, function(error, data) {
+	 doughIP.forEach(function(d) {
+                                        d.share = +d.share;
+                                  });
+
+	 doughStockIP.forEach(function(d) {
+                                        d.share = +d.share;
+                                  });
+	  
+	  var g1 = svg.selectAll("#outer .arc")
+		  .data(pie( doughStockIP ))
+		  .sort(null)
+		  .enter().append("g");
+		
+	  g1.append("path")
+		  .attr("d", doughnutArcStock)
+		  .attr("data-legend", function(d,i) { return doughStockIP[i].asset; })
+		  .style("fill", function(d) { return color(d.data.asset); });
+		  
+	  g1.append("text")
+		  .attr("transform", function(d) { return "translate(" + doughnutArcStock.centroid(d) + ")"; })
+		  .attr("dy", ".35em")
+		  .text(function(d) { return d.data.share; });	  	  
+		  
+	  g1.append("g")
+		  .attr("class","legend")
+		  .attr("transform", "translate(" + ((width)/2 - XOffset + 40) + "," + ( YOffset - ((height) / 2) ) + ")")
+		  .style("font-size","15px")
+		  .attr("data-style-padding",10)
+		  .call(d3.legend);	  
+
+	  var g2 = svg1.selectAll("#Header .arc")
+		  .data(pie( doughIP ))
+		  .sort(null)
+		  .enter().append("g");
+		
+	  g2.append("path")
+		  .attr("d", doughnutArcSector)
+		  .attr("data-legend", function(d,i) { return doughIP[i].asset; })
+		  .style("fill", function(d) { return color(d.data.asset); });
+		  
+	  g2.append("text")
+		  .attr("transform", function(d) { return "translate(" + doughnutArcSector.centroid(d) + ")"; })
+		  .attr("dy", ".35em")
+		  .text(function(d) { return d.data.share; });	  	  
+		  
+	  g2.append("g")
+				.attr("class","legend")
+				.attr("transform", "translate(" + ((width)/2 - XOffset -60) + "," + ( YOffset - ((height) / 2) ) + ")")
+				.style("font-size","15px")
+				.attr("data-style-padding",10)
+				.call(d3.legend);	  
+
+	function type(d) {
+	  d.population = +d.population;
+	  return d;
+	}
+	});
+	</script>
+
+<div id="LineChartContainer">    
+<div id="Label"></div>	
+<!--		<div id = "Label"> <span class="input input--kaede"> <span class="input input--kaede"><input class="input__field input__field--kaede" type="text" id="search" /><label class="input__label input__label--kaede" for="search"><span class="input__label-content input__label-content--kaede">Choose Benchmark</span> </label></span></div>
+-->			
+		
+	<div id = "MFvsBM">
+		
+	<svg class="chart2" id="OK"></svg>
+	<script>	
+		window.MFVsBMHeight = parseFloat( $("#MFvsBM").css("height") );
+		window.MFVsBMWidth = parseFloat( $("#MFvsBM").css("width") );
+		
+		
+		
+		var margin = {top: 20, right: 30, bottom: 20, left: 30},
+		width = MFVsBMWidth - margin.left - margin.right,
+		height = MFVsBMHeight - margin.top - margin.bottom;
+	
+		
+		var parseDate = d3.time.format("%d-%b-%y").parse;
+		window.marOffsetX = margin.right;
+		window.marOffsetY = margin.top;
+		
+		window.xScaler = d3.time.scale()
+			.range([0, width]);
+
+		window.yScaler = d3.scale.linear()
+			.range([height, 0]);
+
+		var xAxis = d3.svg.axis()
+			.scale(xScaler)
+			.orient("bottom");
+
+		var yAxis = d3.svg.axis()
+			.scale(yScaler)
+			.orient("left")
+			.tickValues([-2,-1,-0.50,-0.20,0,0.10,0.30,0.50,1 ,2])
+			.innerTickSize(-width)
+			.outerTickSize(0)
+			.tickPadding(10);
+
+		
+		var svg = d3.select(".chart2")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
+			.append("g")
+			.attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
+			//.attr("transform", "translate(0," + margin.top + ")");
+		
+		
+		
+		//the below 2 are used to cut off the hover messages to the frame of the chart
+		//else it kee
+		//window.LineChartBegin = parseFloat($("#PieBarContainer").css("height"))+parseFloat($("#Label").css("height"))+parseFloat($("#LineChartContainer").css("margin-top"))+margin.top+15;
+		//window.LineChartEnd = parseFloat($("#PieBarContainer").css("height"))+parseFloat($("#Label").css("height"))+parseFloat($("#LineChartContainer").css("margin-top"))+margin.top+MFVsBMHeight+15;
+		
+		window.LineChartBegin = 0;
+		window.LineChartEnd = MFVsBMHeight;
+		
+		  
+		  //add hover line
+		  
+		  // Hover line. 
+			var hoverLineGroup = svg.append("g")
+								.attr("class", "hover-line");
+								
+			window.hoverLine = hoverLineGroup
+				.append("line")
+					.attr("x1", 0).attr("x2", 0) 
+					.attr("y1", 0).attr("y2", height); 
+			// Hide hover line by default.
+			hoverLine.style("opacity", 0.1);
+		
+
+			window.tipLineChart = d3.select("body")
+				.append("div-tool")  // declare the tooltip div 
+				.attr("class", "d3-tip")              // apply the 'tooltip' class
+				.style("opacity", 0);  		
+			
+			circleBenchMark = svg.append("circle")
+				.attr("opacity", 0.00001)
+				.attr({	r: dispCircleRadius, fill: 'SpringGreen' });
+
+		ltOffset = parseFloat( $("#LineChartContainer").css("margin-left") ) + parseFloat( $("#LineChartContainer").css("width") ) - parseFloat( $("#MFvsBM").css("width") )+10;
+
+		  
+		    d3.select(".chart2").on("mouseover", function() { 
+			  
+			  console.log('mouseover bugs');
+			  
+			}).on("mousemove", function() {
+			  var xCoOrd = d3.mouse(this)[0];
+			  var yCoOrd = d3.mouse(this)[1];
+			  if( $("#FromDt").datepicker( "widget" ).is(":visible") || $("#ToDt").datepicker( "widget" ).is(":visible") ) return 1;
+			  	
+			  //console.log('GHOST BUSTERS '+xCoOrd+' '+yCoOrd+' '+ltOffset+' '+(MFVsBMWidth+ltOffset)+' '+LineChartBegin+' '+LineChartEnd);	
+					
+			  if( xCoOrd < (ltOffset) || xCoOrd > (MFVsBMWidth+ltOffset) || yCoOrd < LineChartBegin || yCoOrd > LineChartEnd ){
+                                tipLineChart.style("opacity",0);
+                                hoverLine.style("opacity", 0.001);
+                                circleBenchMark.attr("opacity", 0.001);
+                          }
+			  else{
+			  console.log("JACK BLACK ENTRY: " + xScaler.invert(xCoOrd - marOffsetX) );
+                        //check if the mouse is near the width end
+                        xOff = 0.0;
+                        yOff = 0.0;
+                        // no idea why this is needed defaultOffset i mean ..
+                        defaultOffset = 20;
+                        hoverWidth = parseFloat($('.d3-tip').css("width"));
+                                xOff = xCoOrd+defaultOffset ;
+                                yOff = yCoOrd+defaultOffset;
+                        if (MFVsBMWidth - xCoOrd < 200)
+                        {
+                                xOff = xCoOrd - (hoverWidth+defaultOffset);
+                                yOff = yCoOrd+defaultOffset;
+                        }
+                        if (xCoOrd < 200)
+                        {
+                                xOff = xCoOrd + (hoverWidth+defaultOffset);
+                                yOff = yCoOrd+defaultOffset;
+                        }
+                        if (LineChartEnd - yCoOrd < 50)
+                        {
+                                xOff = xCoOrd+defaultOffset;
+                                yOff = yCoOrd-hoverWidth;
+                        }
+                        if (yCoOrd < 50)
+                        {
+                                xOff = xCoOrd+defaultOffset;
+                                yOff = yCoOrd + hoverWidth;
+                        }
+                        circleBenchMark.attr("opacity", 0.4);
+                        tipLineChart.transition().duration(200).style("opacity",1);
+			if ( xCoOrd >= (MFVsBMWidth  - marOffsetX )) 
+				hoverLine.attr("x1", MFVsBMWidth  - marOffsetX  ).attr("x2", MFVsBMWidth  - marOffsetX  ).style("opacity", 0.3);
+			else
+                        	hoverLine.attr("x1", xCoOrd - marOffsetX ).attr("x2", xCoOrd - marOffsetX ).style("opacity", 0.3);
+
+                        locDt = new Date ( xScaler.invert(xCoOrd - marOffsetX) );
+                        var formHtml = '';
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+">" +locDt.getDate()+" "+MnthRev[(locDt.getMonth())+1]+","+locDt.getFullYear() +"</p></strong>";
+                        formHtml +=  retDailyData( sliced_bm_Data_ , locDt );
+                        formHtml += retDailyData( bmNifty , locDt );
+                        formHtml += retDailyData( bmMC , locDt );
+                        formHtml += retDailyData( bmSC , locDt );
+
+
+
+                        tipLineChart .html( formHtml)
+                                .style("left", (xOff ) + "px")
+                                .style("top", (yOff + LineChartEnd + 15) + "px");
+
+                        // Use event.pageX / event.pageY here
+                        }
+			  
+			    var pathLength = benchMarkPath.node().getTotalLength();
+				//console.log("bm length " + pathLength );
+				//since our hover line has an offset from the xAxis our search
+				//needs to begin from there rather than plain xCoord
+				var x = xCoOrd - margin.left;
+				var beginning = x,
+					end = pathLength,
+					target;
+				while (true) {
+					target = Math.floor((beginning + end) / 2);
+					posBM = benchMarkPath.node().getPointAtLength(target);
+					if ((target === end || target === beginning) && posBM.x !== x) {
+						break;
+					}
+					if (posBM.x > x) end = target;
+					else if (posBM.x < x) beginning = target;
+					else break; //position found
+				}
+				
+				circleBenchMark.attr("opacity", 0.5)
+					.attr("cx", posBM.x )
+					.attr("cy", posBM.y)
+				
+			})  .on("mouseout", function() {
+				console.log('bill');		
+				circleBenchMark.attr("opacity", 0.001);
+				tipLineChart.transition().duration(200).style("opacity",0);
+				hoverLine.style("opacity",0);
+		  });
+		  		  // Hover line. 
+				  
+		  
+		  
+		  svg.append("g")
+			  .attr("class", "x axis")
+			  //.attr("transform", "translate("+marOffsetX+"," + height + ")")
+			  .attr("transform", "translate(0," +( height ) + ")")
+			  .call(xAxis);
+
+		  svg.append("g")
+			  .attr("class", "y axis")
+			  .call(yAxis)
+			  .append("text")
+			  .attr("transform", "rotate(-90)")
+			  .attr("y", 2)
+			  .attr("dy", "1em")
+			  .style("text-anchor", "end")
+			  .text("% Daily Change (%)");
+		//call the final rendering
+		
+		_reScaleBM_MF_axes(".chart2"); 	
+		
+		
+		</script>
+		<script>
+		
+		$(function() {
+			var begDate = new Date();
+			var endDate = new Date();
+		$("#dragslider-range").width( DragSliderWidth );
+			$( "#dragslider-range" ).dragslider({
+			  range: true,
+			  min: 0,
+			  rangeDrag: true,
+			  max: bm_Data_.length-1,
+			  //values: [ 0 , bm_Data_.length-2 ],
+			  //the below is the call back function when the dragslider's moved
+			  slide: function( event, ui ) {
+			  //if the below is true then this is called when we click on the range rather
+				//than drag the handle
+				if(!isDragging){
+					begDate = bm_Data_[ui.values[ 0 ]].Date;
+					endDate = bm_Data_[ui.values[ 1 ]-1].Date;
+					
+					_BM_MF_FromDt_idx = ui.values[ 0 ];
+					_BM_MF_ToDt_idx = ui.values[ 1 ];
+				}
+				else
+				{
+					console.log('NOW GONE BUST!!!');
+				}
+				
+			  },
+			  change : function ( event, ui ){
+				console.log('HMM MOVING VIA THIS !!'+_BM_MF_FromDt_idx+' '+ui.values[ 0 ]);
+				//over ride if isDragging true
+					
+			  },
+			  stop: function( event, ui ) {
+				//rather than call it every movement in the above call it once after user lets go of handle
+				//if()
+				if(!isDragging)
+					{
+						_reScaleBM_MF_axes(".chart2");
+					}
+				
+			  }
+			});
+			$( "#dragslider-range .ui-dragslider-range" ).unbind('mousedown');
+//			$( "#dragslider-range .ui-dragslider-range" ).mousedown(function( event ) {
+					
+//					console.log('OK MAYBE THIS TIME');
+//					isDragging = true;		
+//			});
+		//first time init of Dates and alider
+		$( "#FromDt" ).datepicker({ dateFormat: 'd M yy' });
+		$( "#ToDt" ).datepicker({ dateFormat: 'd M yy' });
+		$( "#FromDt" ).datepicker( "setDate",  bm_Data_[_BM_MF_FromDt_idx].Date );
+		$( "#ToDt" ).datepicker( "setDate",  bm_Data_[_BM_MF_ToDt_idx].Date );
+		$( "#dragslider-range" ).dragslider( "values" , [ _BM_MF_FromDt_idx , _BM_MF_ToDt_idx] );	
+			
+		  });
+	
+		function hardCodedTimeFrame(option){
+			switch(option) {
+				case 'YTD':
+					locArr = pfChange;
+					_BM_MF_ToDt_idx = locArr.length-1;
+					locEnd = new Date( locArr[_BM_MF_ToDt_idx].Date );
+					_BM_MF_FromDt_idx = findIndex ( new Date( '01/01/'+ locEnd.getFullYear() ) );
+					break;
+				case '6M':
+					locStart = new Date( sliced_bm_Data_[sliced_bm_Data_.length-1].Date );
+					var begD = locStart.getDate();
+					//returns the index from 0 to 11 hence need to add 1
+					var begM = parseInt(locStart.getMonth())+1;
+					var begY = 0;					
+					if( begM <= 6){
+						begM = (12 + begM)-6;
+						begY = parseInt(locStart.getFullYear())-1;
+					}
+					else{
+						begM = (begM)-6;
+						begY = parseInt(locStart.getFullYear());
+					}
+					
+					_BM_MF_FromDt_idx = findIndex ( new Date( begM+'/'+begD+'/'+ begY ) );
+					break;	
+				case '1Y':
+					locStart = new Date( sliced_bm_Data_[sliced_bm_Data_.length-1].Date );
+					var begD = locStart.getDate();
+					//returns the index from 0 to 11 hence need to add 1
+					var begM = parseInt(locStart.getMonth())+1;
+					var begY = parseInt(locStart.getFullYear())-1;
+					console.log('1Y '+begD+'/'+begM+'/'+ begY);
+					//need to send it in MMDDYYYY ..a little screwed up 
+					_BM_MF_FromDt_idx = findIndex ( new Date( begM+'/'+begD+'/'+ begY ) );
+					break;
+				case '3Y':
+					locStart = new Date( sliced_bm_Data_[sliced_bm_Data_.length-1].Date );
+					var begD = locStart.getDate();
+					//returns the index from 0 to 11 hence need to add 1
+					var begM = parseInt(locStart.getMonth())+1;
+					var begY = parseInt(locStart.getFullYear())-3;
+					console.log('3Y '+begD+'/'+begM+'/'+ begY);
+					//need to send it in MMDDYYYY ..a little screwed up 
+					_BM_MF_FromDt_idx = findIndex ( new Date( begM+'/'+begD+'/'+ begY ) );
+					break;
+				case '5Y':
+					locStart = new Date( sliced_bm_Data_[sliced_bm_Data_.length-1].Date );
+					var begD = locStart.getDate();
+					//returns the index from 0 to 11 hence need to add 1
+					var begM = parseInt(locStart.getMonth())+1;
+					var begY = parseInt(locStart.getFullYear())-5;
+					console.log('5Y '+begD+'/'+begM+'/'+ begY);
+					//need to send it in MMDDYYYY ..a little screwed up 
+					_BM_MF_FromDt_idx = findIndex ( new Date( begM+'/'+begD+'/'+ begY ) );
+					break;					
+			}
+			
+			if( _BM_MF_FromDt_idx>=0 && _BM_MF_ToDt_idx>=0 )
+				_reScaleBM_MF_axes(".chart2");
+			else
+				console.log('SOMETHING GOTTA HURTA!!');
+		}
+		
+		</script>
+		<script>
+	  $.widget( "custom.catcomplete", $.ui.autocomplete, {
+		_create: function() {
+		  this._super();
+		  this.widget().menu( "option", "items", "> :not(.ui-autocomplete-category)" );
+		},
+		_renderMenu: function( ul, items ) {
+		  var that = this,
+			currentCategory = "";
+		  $.each( items, function( index, item ) {
+			var li;
+			if ( item.category != currentCategory ) {
+			  ul.append( "<li class='ui-autocomplete-category'>" + item.category + "</li>" );
+			  currentCategory = item.category;
+			}
+			li = that._renderItemData( ul, item );
+			if ( item.category ) {
+			  li.attr( "aria-label", item.category + " : " + item.label );
+			}
+		  });
+		}
+		
+	  });
+	  
+		
+	  </script>
+	  <script>
+	  $(function() {
+		//var data = ['BM1','BM2','BM3'];
+		var data = [];
+	 
+		$( "#search" ).catcomplete({
+		  delay: 0,
+		  source: data,
+		  //value: "-Choose Benchmark-",		
+		  select: function(event, ui) { 
+		  //callback when option is selected
+		  this.value = "";
+			setBMDataBasedOnMF( ui.item.label ) ;
+			_reScaleBM_MF_axes( ".chart2" ) ;
+		  }
+		})//.val('Choose Benchmark')
+		  .focus(function() {
+				$( "#search" ).val('');	
+		   })
+	  });
+	  //mousemove for Line Chart HOVER!!
+  </script>
+	
+	
+	</div>
+<div id ="TopCont">
+				
+				
+				<input type="text" readOnly='true' id="ToDt"><input type="text" readOnly='true' id="FromDt" >
+				<a href="#" id="firstButton" onclick="hardCodedTimeFrame('YTD')" class="locBut">YTD</a>  <a href="#" onclick="hardCodedTimeFrame('6M')" class="locBut">6M</a> <a href="#" onclick="hardCodedTimeFrame('1Y')" class="locBut">1Y</a> 
+				<a href="#" onclick="hardCodedTimeFrame('3Y')" class="locBut">3Y</a> <a href="#" onclick="hardCodedTimeFrame('5Y')" 
+				class="locBut">5Y</a>
+				
+
+</div>		
+<div id="dragslider-range" class="vik"></div>	
+
+<script>
+		window.DragSliderWidth = parseFloat( $("#dragslider-range").css("width") );
+		
+		var margin = {top: 20, right: 30, bottom: 20, left: 30};
+		DragSliderWidth = DragSliderWidth - margin.left - margin.right;
+		//now set the width for dragslider
+		
+
+</script>	
+
+
+</div>
+
+<div id="BarComments">
+<h2 id="GyanHdr">Comparitive Commentary</h2>
+<p>
+Looks like your portfolio has been suffering for ages. Its been busted for a while, so go change !
+</p>
+</div>
+<script>
+	var timerStart = Date.now();
+	console.log('END ? '+timerStart);
+</script>
+</body>
+
