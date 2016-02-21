@@ -32,6 +32,9 @@
 		-webkit-transition: all 0.1s;
 	}
 
+
+
+
 	.action-button
 	{
 		position: relative;
@@ -81,28 +84,10 @@
 	}
 
 	
-    .bar {
-    fill: lawngreen;
-    }
-    .bar1 {
-    fill: mediumslateblue;
-    }
-
     .axis text {
-    font: 11px sans-serif;
+    font: 14px sans-serif;
     }
 
-    .axis path,
-    .axis line {
-    fill: none;
-    stroke: #000;
-	
-    shape-rendering: crispEdges;
-    }
-
-    .x.axis path {
-    display: none;
-    }
 
     @keyframes blinker {
     50% { opacity: 0.0; }
@@ -126,50 +111,9 @@
     display: inline-block;
     text-align: center;
     cursor: pointer;
-    box-shadow: inset 0 0 0 0 #C14800;
     /*animation: blinker 1s linear infinite;*/
     }
 	
-	.myButton {
-	-moz-box-shadow:inset 0px 1px 0px 0px #fff6af;
-	-webkit-box-shadow:inset 0px 1px 0px 0px #fff6af;
-	box-shadow:inset 0px 1px 0px 0px #fff6af;
-	background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ffec64), color-stop(1, #ffab23));
-	background:-moz-linear-gradient(top, #ffec64 5%, #ffab23 100%);
-	background:-webkit-linear-gradient(top, #ffec64 5%, #ffab23 100%);
-	background:-o-linear-gradient(top, #ffec64 5%, #ffab23 100%);
-	background:-ms-linear-gradient(top, #ffec64 5%, #ffab23 100%);
-	background:linear-gradient(to bottom, #ffec64 5%, #ffab23 100%);
-	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffec64', endColorstr='#ffab23',GradientType=0);
-	background-color:#ffec64;
-	-moz-border-radius:6px;
-	-webkit-border-radius:6px;
-	border-radius:6px;
-	border:1px solid #d68b1a;
-	display:inline-block;
-	cursor:pointer;
-	color:#333333;
-	font-family:Arial;
-	font-size:15px;
-	font-weight:bold;
-	padding:6px 5px;
-	text-decoration:none;
-	text-shadow:0px 1px 0px #ffee66;
-	}
-	.myButton:hover {
-		background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ffab23), color-stop(1, #ffec64));
-		background:-moz-linear-gradient(top, #ffab23 5%, #ffec64 100%);
-		background:-webkit-linear-gradient(top, #ffab23 5%, #ffec64 100%);
-		background:-o-linear-gradient(top, #ffab23 5%, #ffec64 100%);
-		background:-ms-linear-gradient(top, #ffab23 5%, #ffec64 100%);
-		background:linear-gradient(to bottom, #ffab23 5%, #ffec64 100%);
-		filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffab23', endColorstr='#ffec64',GradientType=0);
-		background-color:#ffab23;
-	}
-	.myButton:active {
-		position:relative;
-		top:1px;
-	}
 
     /* MASTER OF PUPPETS */
 
@@ -186,7 +130,7 @@
     div {
     text-align: left;
     position: relative;
-    top: 5%;
+    /*top: 5%;
     /*padding: 20px;*/
     /*min-width: 820px;*/
     }
@@ -286,10 +230,14 @@
     #container .container-SD {   display: block;   margin: 1px 0;}
 	
     .bar {
-    	fill: #5DA5DA;
+    	/*fill: #5DA5DA;*/
+    	fill: red;
+	opacity: 0.6;	
     }
     .bar1 {
-    	fill: #F15854; 
+    	fill: steelblue;
+    	/*fill: #F15854;*/
+	opacity: 0.6; 
     }
 
 	#HDR1{
@@ -305,47 +253,63 @@
         	font-size: 130%;
 		font-weight: normal;
 	}
+
+	#upperHouse{
+    	   padding:15px 20px 0px 20px;
+		float: left;
+	 	height: 70%;
+    		width:65%; 
+	}
 	
 	#upperLCContainer{
     	   padding:15px 20px 0px 20px;
 		float: left;
-	 	height: 35%;
-    		width:67%; 
+	 	height: 45%;
+    		width:100%; 
 	}
 	#upperHistContainer{
-    	   padding:0px 20px;
+    	   padding:15px 20px 0px 20px;
 		float: left;
-	 	height: 35%;
-    		width:67%; 
+	 	height: 45%;
+    		width:100%; 
+	}
+	
+	#lowerHouse{
+    	   padding:15px 20px 0px 20px;
+		float: right;
+	 	height: 70%;
+		top: 40px;
+    		width:65%; 
 	}
 
 	#lowerLCContainer{
     	   padding:15px 20px 0px 20px;
 		float: left;
-	 	height: 35%;
-    		width:90%; 
+	 	height: 45%;
+    		width:100%; 
 	}
 
 	#lowerHistContainer{
-    	   padding:0px 20px;
+    	   padding:15px 20px 0px 20px;
 		float: left;
-	 	height: 35%;
-    		width:90%; 
+	 	height: 45%;
+    		width:100%; 
 	}
 
-	#MFvsBM{
+	#MFvsBMCont{
     	padding:15px 20px; 
 	left: 40px;
 	right: 40px;
 	float:left;
-	box-shadow: 10px 10px 5px #888888;	
-	/*height:50%;*/
-    /*width:35%;*/
-	/*border: 1px black solid;*/
-	/*border-radius: 25px;*/
-    /*border: 2px solid #73AD21;*/
+	height: 100%;
+    	width:100%; 
 	}
+
+	.tick line{
+                opacity: 0.4;
+        }
 	
+
 	#HDR{
 	width :100%;
 	height: 100px;
@@ -368,11 +332,19 @@
 	}
 
 	
+	#MFvsBM{
+    	padding:15px 20px; 
+	left: 40px;
+	right: 40px;
+	float:left;
+	box-shadow: 10px 10px 5px #888888;	
+	}
 
         #MFHist{
     padding:15px 20px;
         left: 40px;
         right: 40px;
+	top: 40px;
         float:left;
 	box-shadow: 10px 10px 5px #888888;
         /*height:50%;*/
@@ -387,8 +359,7 @@
     padding:15px 20px;
         left: 40px;
         right: 40px;
-	top: 40px;
-        float:right;
+        float:left;
 	box-shadow: 10px 10px 5px #888888;
         /*height:50%;*/
     /*width:35%;*/
@@ -398,9 +369,10 @@
 
         #MFHist1{
     padding:15px 20px;
-        float:right;
+        float:left;
         left: 40px;
         right: 40px;
+	top: 40px;
 	box-shadow: 10px 10px 5px #888888;
         /*height:50%;*/
     /*width:35%;*/
@@ -413,6 +385,7 @@
 	
 		padding:15px 20px;
         	float:left;
+		margin-left: 50px;
         	height: 70%;
         	width: 25%;
 	}
@@ -444,7 +417,7 @@
 	width: 100%;
 	height: 80%;
 	top: 100px;
-	left: -70px;	
+	left: -50px;	
         /*height:50%;*/
     /*width:35%;*/
         /*border-radius: 25px;*/
@@ -545,7 +518,8 @@
 	}
 
 	.x.axis path {
-	  display: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
 	}
 
 	.line {
@@ -558,61 +532,141 @@
 	  stroke:black;
 	  opacity:0.5;
 	 }
-	
-	#​tooltip {
-		display:none;
-		border:1px solid #F00;
-		width:150px;
-	}​
-	
-	.tiptext {
-		background:#ccc;
-		border: 1px #333 solid;
-		padding:5px;
-		width:100px;
-	}
-	.description {
-		display:none;
-		position:absolute;
-		border:1px solid #000;
-		width:400px;
-		height:400px;
-	}
-	
-	.d3-tip {
-	  line-height: 1;
-	  font-weight: bold;
-	  padding: 12px;
-	  background: rgba(0, 0, 0, 0.8);
-	  color: #fff;
-	  border-radius: 2px;
-	}
 
-	/* Creates a small triangle extender for the tooltip */
-	.d3-tip:after {
-	  box-sizing: border-box;
-	  display: inline;
-	  font-size: 5px;
-	  width: 100%;
-	  line-height: 1;
-	  color: rgba(0, 0, 0, 0.8);
-	  content: "\25BC";
-	  position: absolute;
-	  text-align: center;
-	}
 
-	/* Style northward tooltips differently */
-	.d3-tip.n:after {
-	  margin: -1px 0 0 0;
-	  top: 100%;
-	  left: 0;
-	}
-	
-	.hover-line { 
-	  stroke: SpringGreen;  
-	  fill: none;
-	  stroke-width: 1.5px;
-	}
-	
+.tooltip-item {
+        color: #2fa0ec;
+        cursor: pointer;
+        z-index: 100;
+        position: relative;
+        display: inline-block;
+        font-weight: 700;
+        -webkit-transition: background-color 0.3s, color 0.3s, -webkit-transform 0.3s;
+        transition: background-color 0.3s, color 0.3s, transform 0.3s;
+}
+
+.tooltip:hover .tooltip-item {
+        color: #fff;
+        -webkit-transform: translate3d(0,-0.5em,0);
+        transform: translate3d(0,-0.5em,0);
+}
+
+/* Tooltip */
+
+.tooltip-content {
+        position: absolute;
+        z-index: 99;
+        width: 400px;
+        left: 40%;
+        margin-left: -180px;
+        bottom: -5px;
+        text-align: left;
+        background: #2fa0ec;
+        font-size: 0.75em;
+        line-height: 1.5;
+        padding: 1.5em;
+        color: #fff;
+        border-bottom: 65px solid #2a3035;
+        cursor: default;
+        pointer-events: none;
+        border-radius: 5px;
+
+        -webkit-transform: translate3d(0,-0.5em,0);
+        transform: translate3d(0,-0.5em,0);
+        -webkit-transition: opacity 0.3s, -webkit-transform 0.3s;
+        transition: opacity 0.3s, transform 0.3s;
+}
+
+.tooltip-content a {
+        color: #32434f;
+}
+
+.tooltip-text {
+        -webkit-transform: translate3d(0,1.5em,0);
+        transform: translate3d(0,1.5em,0);
+        -webkit-transition: opacity 0.3s, -webkit-transform 0.3s;
+        transition: opacity 0.3s, transform 0.3s;
+}
+
+.tooltip:hover .tooltip-content,
+.tooltip:hover .tooltip-text {
+        pointer-events: auto;
+        opacity: 1;
+        -webkit-transform: translate3d(0,0,0);
+        transform: translate3d(0,0,0);
+}
+
+
+
+        .tiptext {
+                background:#ccc;
+                border: 1px #333 solid;
+                padding:5px;
+                width:100px;
+        }
+        .description {
+                display:none;
+                position:absolute;
+                border:1px solid #000;
+                width:400px;
+                height:400px;
+        }
+
+        .focus{
+          fill: none;
+          stroke: steelblue;
+        }
+        div-tool.d3-tip {
+          position: absolute;
+          line-height: 1;
+          padding: 12px;
+          height:80px;
+          width:200px;
+          border: 2px solid steelblue;
+          border-radius: 5px;
+          display: inline-block;
+          background: white;
+          fill:white;
+        }
+
+        div.tooltip {
+          position: absolute;
+          text-align: center;
+          width: 60px;
+          height: 28px;
+          padding: 2px;
+          font: 12px sans-serif;
+          background: lightsteelblue;
+          border: 0px;
+          border-radius: 8px;
+         /*  pointer-events: none;      This line needs to be removed */
+
+        }
+
+        /* Creates a small triangle extender for the tooltip */
+        .d3-tip:after {
+          box-sizing: border-box;
+          display: inline;
+          font-size: 5px;
+          width: 100%;
+          line-height: 1;
+          color: rgba(0, 0, 0, 0.8);
+          content: "\25BC";
+          position: absolute;
+          text-align: center;
+        }
+
+        /* Style northward tooltips differently */
+        .d3-tip.n:after {
+          margin: -1px 0 0 0;
+          top: 100%;
+          left: 0;
+        }
+        .hover-line {
+          stroke: red;
+          fill: none;
+          stroke-width: 1.5px;
+        }
+
     /* WHIPLASH */
 

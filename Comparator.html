@@ -13,7 +13,6 @@
 <script src="{% static 'jquery-ui-1.11.4.custom/jquery-ui.min.js' %}"></script>
 <script src="{% static 'jquery-ui-1.11.4.custom/jquery.ui.slider.js' %}"></script>
 <script src="{% static 'jquery-ui-1.11.4.custom/d3.min.js' %}"></script>
-<script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/jquery-labrat-tip.js' %}"></script>
 <script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/d3-legend.js' %}"></script>
 <script src="{% static 'jquery-ui-1.11.4.custom/dataManipulator.js' %}"></script>
 <script src="{% static 'jquery-ui-1.11.4.custom/snap.svg-min.js' %}"></script>
@@ -34,13 +33,46 @@
 	window.MFVsBMHeight = (300*screen.width)/(1920);
 	//since we have the graph continers as 67% of the width scale graph width in 1/3 proportion and subtract left and right margin
 	window.MFVsBMWidth = ((screen.width)/3)-60;
-	window.dispCircleRadius = 8;
+	window.dispCircleRadius = 5;
 	window.dispBMName = '';	
 	window.dispMFName = '';
 	window.isDragging = false;
 	window.bnch = 'CNX Nifty';
 	window.cmpAsset = "";
 	window.assetType = "index";
+
+        window.Mnth = {};
+        window.MnthRev = {};
+	window.storeAreaData = {};
+
+        Mnth["Jan"]='01';
+        Mnth["Feb"]='02';
+        Mnth["Mar"]='03';
+        Mnth["Apr"]='04';
+        Mnth["May"]='05';
+        Mnth["Jun"]='06';
+        Mnth["Jul"]='07';
+        Mnth["Aug"]='08';
+        Mnth["Sep"]='09';
+        Mnth["Oct"]='10';
+        Mnth["Nov"]='11';
+        Mnth["Dec"]='12';
+
+
+        MnthRev[1]='Jan';
+        MnthRev[2]='Feb';
+        MnthRev[3]='Mar';
+        MnthRev[4]='Apr';
+        MnthRev[5]='May';
+        MnthRev[6]='Jun';
+        MnthRev[7]='Jul';
+        MnthRev[8]='Aug';
+        MnthRev[9]='Sep';
+        MnthRev[10]='Oct';
+        MnthRev[11]='Nov';
+        MnthRev[12]='Dec';
+	
+	
 	//given that both BM and MF will have the same dt range 
 	//we can read the current BM values itself
 	function findIndex(findDt){
@@ -198,14 +230,57 @@
 		_reScaleBM_MF_axes( ".chart22", "FLAT2", 0);
 		_reScaleBM_MF_axes( ".chart23" , "BULL2", 1); 
 		_reScaleBM_MF_axes(".chart24", "BULL3", 0);
+		
+		d3.selectAll(".bar").remove();
+		d3.selectAll(".bar1").remove();
 
-		genHist(".histFlat1", "FLAT1");
-		genHist(".histFlat2", "FLAT2");
-		genHist(".histFlat3", "BULL2");
-		genHist(".histFlat4", "BULL3");
+		//first numeric arg is uper /lower and the 2nd one indicates if its a screen refresh
+		genHist(".histFlat1", "FLAT1", 0);
+		genHist(".histFlat2", "FLAT2", 0);
+		genHist(".histFlat3", "BULL2", 1);
+		genHist(".histFlat4", "BULL3", 1);
 		
 		genMsg();
 	
+	}
+
+	function retDailyData(  dt, area){
+		locNm = '';
+
+		//check for sat and sunday ...if so pass the function day-1 or 2 accordingly
+		if (dt.getDay() == 6)
+			dt = new Date(dt.setDate(dt.getDate() - 1));
+		else if (dt.getDay() == 0)
+                        dt = new Date(dt.setDate(dt.getDate() - 2));
+
+		locData = storeAreaData[ [area] ];
+		data = locData.BM;
+		dataAss = locData.ASS;
+		
+                for(ctr = 0 ; ctr < data.length; ctr++)
+                {
+                        lcDt = data[ctr].dt;
+                        if ( dt.getFullYear() == lcDt.getFullYear() && dt.getMonth() == lcDt.getMonth() && dt.getDate() == lcDt.getDate()  ) {
+                                        var per = data[ctr];
+                                        var per1 = dataAss[ctr];
+                                         ret = Math.round(per.cumuChg*100*100)/100 ;
+                                         ret1 = Math.round(per1.cumuChg*100*100)/100 ;
+					 console.log('nam '+ret+' '+ret1);
+                                         if (ret > 0)
+                                                locNm += "<strong><p style="+"\"color:black\""+">"+bnch+" : "+ ret + "% </p></strong>";
+                                         else
+                                                locNm += "<strong><p style="+"\"color:red\""+">"+bnch+" : "+ ret + "% </p></strong>";
+
+                                         if (ret1 > 0)
+                                                locNm += "<strong><p style="+"\"color:black\""+">"+cmpAsset+" : "+ ret1 + "% </p></strong>";
+                                         else
+                                                locNm += "<strong><p style="+"\"color:red\""+">"+cmpAsset+" : "+ ret1 + "% </p></strong>";
+					 
+					 return locNm;	
+                        }
+                }
+                return "<strong><p style="+"\"color:steelblue\""+">"+locNm+": Markets Closed</p></strong>";
+
 	}
 
 	function retHistBinData(asset, phase){
@@ -322,6 +397,8 @@
 	}
 	
 	function _reScaleBM_MF_axes( area, phase, showLegend ){
+
+		var margin = {top: 20, right: 30, bottom: 20, left: 30};
 	if (current_MF_Data_.length == 0){	  
 				  current_MF_Data_ = bm_Data_;
 				  }
@@ -347,6 +424,12 @@
 					d.cumuChg = +d.cumuChg;
 					d.zero = +d.zero;
 				  });
+
+			//store the data structures for recall in hovers
+			var singleTon = {};
+			singleTon['BM'] = sliced_bm_Data_;
+			singleTon['ASS'] = current_Data_;
+			storeAreaData[ [area] ] = singleTon;		
 			
 			var mindt = new Date(); var maxdt = new Date(); var minClose = 0; var maxClose = 0;
 			// figure out the min and max shite
@@ -375,17 +458,21 @@
 			.range([0, width]);
 
 			var yScaler = d3.scale.linear()
-			.range([height, 0]);
+			.range([height , 0]);
 			
 			var xAxis = d3.svg.axis()
 			.scale(xScaler)
 			.orient("bottom")
+			//.innerTickSize(-height)
+                        //.outerTickSize(0)
 			.tickFormat(d3.time.format("%b"));
 
 			var yAxis = d3.svg.axis()
 			.scale(yScaler)
 			.orient("left")
-			//.tickValues([-0.04,-0.08, -0.15, -0.25, -0.35, -0.45,-1,0.04, 0.08, 0.15, 0.25, 0.35, 0.45,1])
+			//.tickValues([-1,-0.5, -0.25, 0,0.05 ,0.10, 0.25 ,0.5,1])
+			.innerTickSize(-width)
+                        .outerTickSize(0)
 			.tickFormat(d3.format("%"));
 			
 			var line = d3.svg.line()
@@ -402,7 +489,7 @@
 			svg.selectAll("path")
 			.remove();
 			
-			svg.selectAll("text").remove();
+			//svg.selectAll("text").remove();
 			//rescale if necessary
 			
 			xScaler.domain([mindt, maxdt]);
@@ -455,7 +542,7 @@
 			  .datum(sliced_bm_Data_)
 			  .attr("class", "line")
 			  .attr("d", line)
-			  .attr("data-legend", bnch)
+			  //.attr("data-legend", bnch)
 			  .attr("stroke","#5DA5DA")
 			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
 
@@ -465,18 +552,11 @@
 			  .datum(sliced_bm_Data_)
 			  .attr("class", "line")
 			  .attr("d", line)
-			  .attr("data-legend", 'Returns - '+phase)
+			  //.attr("data-legend", 'Returns - '+phase)
 			  .attr("stroke","#5DA5DA")
 			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
 		}
 		//zero line
-		window.benchMarkPath =  svg.append("path")
-                          .datum(sliced_bm_Data_)
-                          .attr("class", "line")
-                          .attr("d", line1)
-                          .attr("stroke","red")
-			  .style("stroke-dasharray", ("6, 3"))	
-                          .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
 	  
 			//if the user hath selected some MF  
 			if( showLegend == 1){
@@ -484,7 +564,7 @@
 				  .datum(current_Data_)
 				  .attr("class", "line")
 				  .attr("d", line)
-				  .attr("data-legend", cmpAsset)
+				  //.attr("data-legend", cmpAsset)
 				  .attr("stroke","#F15854")
 				  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
 			} else {
@@ -512,14 +592,15 @@
 				alert("sorry from dt's always going to be earlier than To dt ..never went to school ..sucker ?");
 			}	
 
-			//if( showLegend == 1){				
+			/* if( showLegend == 1){				
 				legend = svg.append("g")
 				.attr("class","legend")
 				.attr("transform","translate(70,25)")
 				.style("font-size","15px")
 				.attr("data-style-padding",10)
 				.call(d3.legend);
-			//}
+			}
+			*/
 // the below code handles putting labels at the end of line charts
 				BMperiodRet = sliced_bm_Data_[sliced_bm_Data_.length-1]['cumuChg'];
 				AssetperiodRet = current_Data_[current_Data_.length-1]['cumuChg'];
@@ -533,7 +614,7 @@
                                 }
 
 // text element indicating phase gain / loss
-
+/*
 				svg.append("text")
 					.attr("transform", "translate(" + (width+3) + "," + t1 + ")")
 					.attr("dy", ".35em")
@@ -551,37 +632,53 @@
 					.style("fill", "#F15854")
 					.style("font-weight", "bold")
 					.text(Math.floor(AssetperiodRet * 100)+'%' );
-			
+*/			
 
     }
 	
 
-	function genHist( area, phase ){
+	function genHist( area, phase , container ){
 
-		var margin = {top: 20, right: 30, bottom: 20, left: 30},
-                width = MFVsBMWidth - margin.left - margin.right,
-                height = MFVsBMHeight - margin.top - margin.bottom;
-
-		var x = d3.scale.ordinal()
+		var margin = {top: 20, right: 30, bottom: 20, left: 30};
+	
+		
+		if(container == 0){
+                	width = parseFloat ($("#upperHistContainer").css("width"))/2 - 2*margin.left - 2*margin.right,
+                	height = parseFloat ($("#upperHistContainer").css("height")) - margin.top - margin.bottom;
+		}
+		else
+		{
+                	width = parseFloat ($("#upperHistContainer").css("width"))/2 - 2*margin.left - 2*margin.right,
+                	height = parseFloat ($("#upperHistContainer").css("height")) - margin.top - margin.bottom;
+		}
+		var xHist = d3.scale.ordinal()
 			.rangeRoundBands([width,0], 0.1);
-		var y = d3.scale.linear()
+		var yHist = d3.scale.linear()
 			.range([height,0]);
 
 		var xAxis = d3.svg.axis()
-			.scale(x)
+			.scale(xHist)
 			.orient("bottom")
 			.tickValues([-0.12,-0.06,-0.02,0, 0.02, 0.04, 0.08, 0.13])
 			.tickFormat(d3.format("%"));
 
 
 		var yAxis = d3.svg.axis()
-			.scale(y)
+			.scale(yHist)
 			.orient("left");
 		
 		var bnchData = retHistBinData( bnch, phase);
 		var assData = retHistBinData( cmpAsset , phase);
 		var normbnch = adder(bnchData);
 		var normass = adder(assData);
+
+		window.barChart22 = d3.select("body")
+                                .append("div-tool")  // declare the tooltip div
+                                .attr("class", "d3-tip")              // apply the 'tooltip' class
+                                .style("opacity", 0);
+
+
+
 		console.log('ass '+normbnch+'-'+normass);
 		console.log('asshole '+ IQRList[bnch+'-'+phase+'\r']);
 
@@ -595,11 +692,11 @@
                 }
 
 
-		x.domain(bnchData.map(function(d) { return d.name; }));
+		xHist.domain(bnchData.map(function(d) { return d.name; }));
 		if( d3.max( bnchData , function(d) { return d.value; }) > d3.max(assData , function(d) { return d.value; }) )
-			y.domain([0, d3.max(bnchData , function(d) { return d.value/normbnch; })]);
+			yHist.domain([0, d3.max(bnchData , function(d) { return d.value/normbnch; })]);
 		else
-			y.domain([0, d3.max(assData , function(d) { return d.value/normass; })]);
+			yHist.domain([0, d3.max(assData , function(d) { return d.value/normass; })]);
 
 		var chart = d3.select(area)
 			.attr("width", width + margin.left + margin.right)
@@ -609,41 +706,141 @@
 
 		chart.append("g")
 			  .attr("class", "x axis")
-			  .attr("transform", "translate(0,"+height+")")
+			  .attr("transform", "translate(0," + height + ")")
 			  .call(xAxis);
 
 
-		chart.selectAll(".bar")
+		chart.selectAll(area)
 			  .data(bnchData)
 			.enter().append("rect")
 			  .attr("class", "bar")
-			  .attr("x", function(d) { return x(d.name); })
-			  .attr("y", function(d) { return y(d.value/normbnch); })
-			  .attr("height", function(d) { return height - y(d.value/normbnch); })
-			  .attr("width", x.rangeBand())
+			  .attr("x", function(d) { return xHist(d.name)+3; })
+			  .attr("y", function(d) { return yHist(d.value/normbnch); })
+			  .attr("height", function(d) { return height - yHist(d.value/normbnch); })
+			  .attr("width", xHist.rangeBand()-5)
 			  .on('click', function(d,i){  alert( d.value/normbnch ) ; })
 			  .on('dblclick', function(d,i){  alert( d.name ) ; });
 
-		chart.selectAll(".bar1")
+		chart.selectAll(area)
 			  .data(assData)
 			.enter().append("rect")
 			  .attr("class", "bar1")
-			  //.attr("x", function(d) { return x(d.name)+x.rangeBand(); })
-			  .attr("x", function(d) { return x(d.name)+ 5; })
-			  .attr("y", function(d) { return y(d.value/normass); })
-			  .attr("height", function(d) { return height - y(d.value/normass); })
-			  .attr("width", x.rangeBand())
-			  .attr("data-legend", "Volatility - "+phase)
+			  .attr("x", function(d) { return xHist(d.name); })
+			  .attr("y", function(d) { return yHist(d.value/normass); })
+			  .attr("height", function(d) { return height - yHist(d.value/normass); })
+			  .attr("width", xHist.rangeBand())
+			  //.attr("data-legend", "Volatility - "+phase)
 			  .on('click', function(d,i){  alert( d.value/normbnch ); })
 			  .on('dblclick', function(d,i){  alert( d.name ); });
 
+                d3.select(area)
+                        .on("mouseover", function() {
+
+                          console.log('mouseover bugs');
+
+                        })
+                        .on("mousemove", function() {
+                          var xCoOrd = d3.mouse(this)[0];
+                          var yCoOrd = d3.mouse(this)[1];
+			  var normbnch = adder(bnchData);
+                          var normass = adder(assData);	
+			  var bnchDist = 0.0;
+			  var cmpDist = 0.0;
+			  var range = '';	
+	
+			  offsetBinX = 0.0;	
+			  offsetBinY = 0.0;	
+
+			  console.log(' vik '+event.pageX+' '+event.pageY+' '+parseFloat( $("#upperLCContainer").css("height"))+' '+parseFloat( $("#upperLCContainer").css("width")));	
+			  // user x and y co ords for finding offset
+
+			  if ( event.pageX < parseFloat( $("#upperLCContainer").css("width"))/2 && event.pageY <  parseFloat( $("#upperHouse").css("width")) ){ 
+				//first hist from top left
+				offsetBinX = margin.left;	
+				offsetBinY = parseFloat( $("#upperLCContainer").css("height"));	
+			  }	
+			  else if ( event.pageX > parseFloat( $("#upperLCContainer").css("width"))/2 && event.pageY <  parseFloat( $("#upperHouse").css("width"))  ){ 
+				//2nd hist from top left
+				offsetBinX = 2*margin.left +  parseFloat( $("#upperLCContainer").css("width"))/2;	
+				offsetBinY = parseFloat( $("#upperLCContainer").css("height"));	
+			  }
+			  else if ( screen.width - event.pageX < parseFloat( $("#lowerLCContainer").css("width"))/2 &&  event.pageY >  parseFloat( $("#upperHouse").css("width"))  )
+			  {
+				//4th hist bottom right
+				offsetBinX = margin.left +  screen.width - parseFloat( $("#lowerLCContainer").css("width"))/2;	
+				offsetBinY = parseFloat( $("#upperHouse").css("height")) + parseFloat( $("#lowerLCContainer").css("height")) + margin.top*4 ;	
+			  }
+			  else if ( screen.width - event.pageX < parseFloat( $("#lowerLCContainer").css("width")) &&  event.pageY >  parseFloat( $("#upperHouse").css("width"))  )
+			  {
+				//3rd hist bottom right
+				offsetBinX = margin.left +  screen.width - parseFloat( $("#lowerLCContainer").css("width"));	
+				offsetBinY = parseFloat( $("#upperHouse").css("height")) + parseFloat( $("#lowerLCContainer").css("height")) + margin.top*4 ;	
+			  }				
+			
+
+			  flg = bnchData[0];	
+			  for (cr = 0; cr < bnchData.length ; cr++){
+				//console.log('FREAK '+cr+' '+xHist( bnchData[cr].name )+' '+xCoOrd+' '+xHist( flg.name ) );
+			  	if ( (xHist( bnchData[cr].name ) - 8.5 ) < (xCoOrd) && (xCoOrd) < (xHist( bnchData[cr].name ) + 8.5 )  )
+				{
+					console.log("Clicked on " + bnchData[cr+3].name +'- '+ bnchData[cr+2].name+' '+(parseFloat(bnchData[cr+2].value)/normbnch)*100+' '+(parseFloat(assData[cr+2].value)/normbnch)*100);
+					bnchDist = Math.round((parseFloat(bnchData[cr+2].value)/normbnch)*100);
+					cmpDist = Math.round( (parseFloat(assData[cr+2].value)/normbnch)*100);
+					range = parseFloat( bnchData[cr+3].name )*100+' To '+ parseFloat( bnchData[cr+2].name )*100+' %';
+					break;
+				}
+				flg = bnchData[cr];
+			  }
+
+                        xOff = offsetBinX;
+                        yOff = offsetBinY;
+                        // no idea why this is needed defaultOffset i mean ..
+                        defaultOffset = 20;
+                        hoverWidth = parseFloat($('.d3-tip').css("width"));
+                        hoverHeight = parseFloat($('.d3-tip').css("height"));
+
+                        if ( (xCoOrd < width/2) )
+                        {
+                                xOff += width - hoverWidth + 2*margin.left;
+                                yOff += 2*hoverHeight;
+                        }
+                        else if ( (xCoOrd >= width/2) )
+                        {
+                                xOff += margin.left + margin.right;// + hoverWidth;
+                                yOff += 2*hoverHeight;
+                        }
+
+
+                        tipLineChart22.transition().duration(200)
+                        .style("opacity", 0.7);
+                        var formHtml = '';
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+">"+" Daily % Chg Distribution </p></strong>";
+                        formHtml +=  "<strong><p style="+"\"color:steelblue; font-size:20px;\""+">"+range+ "</p></strong>";
+                        formHtml +=  "<strong><p style="+"\"color:black\""+">"+bnch+" : "+ bnchDist +"%</p></strong>";
+                        formHtml +=  "<strong><p style="+"\"color:black\""+">"+cmpAsset+" : "+ cmpDist +"%</p></strong>";
+
+
+                        tipLineChart22 .html( formHtml)
+                                .style("left", (xOff ) + "px")
+                                .style("top", (yOff) + "px");
+	
+
+
+			  //console.log( "MUDKA "+xCoOrd+' '+' '+yCoOrd+' '+ width1+' ' + width );
+			})
+			  .on("mouseout", function() {
+				tipLineChart22.transition().duration(200)
+                        	.style("opacity", 0.01);
+                        });
+
+/*
 		chart.append("g")
 			.attr("class","legend")
 			.attr("transform","translate(0,25)")
 			.style("font-size","15px")
 			.attr("data-style-padding",10)
 			.call(d3.legend);	
-
+*/
 		//});
 
 		function type(d) {
@@ -664,11 +861,13 @@
 
 
 	
-	<div id = "MFvsBM">
 
 	<div id="loader-wrapper">
     		<div id="loader"></div>
 	</div>
+
+<!-- begin container for upper shite -->
+<div id="upperHouse">
 
 	<div id = "upperLCContainer">
 	<div id = "MFvsBM">
@@ -676,8 +875,8 @@
 	<script>
 		initGlobalSetBM();	
 		var margin = {top: 20, right: 30, bottom: 20, left: 30},
-		width = MFVsBMWidth - margin.left - margin.right,
-		height = MFVsBMHeight - margin.top - margin.bottom;
+		width = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
+		height = parseFloat( $("#upperLCContainer").css("height") ) - margin.top - margin.bottom;
 		//width = 700 , height = 500 ;
 
 		var parsedt = d3.time.format("%d-%b-%y").parse;
@@ -697,14 +896,13 @@
 
 		var yAxis = d3.svg.axis()
 			.scale(yScaler)
-			.orient("left");
+			.orient("left")
+			//.tickValues([-2,-1,-0.50,-0.20,0,0.10,0.30,0.50,1 ,2])
+			.tickValues([-10,0, 10])
+                        .innerTickSize(-width)
+                        .outerTickSize(0)
+                        .tickPadding(10);
 
-		var tipLineChart = d3.tip()
-				  .attr('class', 'd3-tip')
-				  //.offset([0, 0])
-				  //.html(function(d) {
-					//return "<strong>Risk:</strong> " + d.x1 +"<br><strong>Return:</strong> " + d.x2 + "</span>";
-				  //})		
 			
 		var svg = d3.select(".chart2")
 			.attr("width", width + margin.left + margin.right)
@@ -712,141 +910,16 @@
 			.append("g")
 			.attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
 			//.attr("transform", "translate(0," + margin.top + ")");
-		
-		svg.call( tipLineChart );
 
-		//d3.tsv("data.tsv", function(error, data) {
-		//**********below is where you should be placing Benchmark data / arrays via static in django ********//
-		 
-		  //to init we call with 0 ..will need to change it after template mess
-		  
-		  //add hover line
-		  
-		  // Hover line. 
-			var hoverLineGroup = svg.append("g")
-								.attr("class", "hover-line");
-			var hoverLine = hoverLineGroup
-				.append("line")
-					.attr("x1", 10).attr("x2", 10) 
-					.attr("y1", 0).attr("y2", height); 
-			// Hide hover line by default.
-			hoverLine.style("opacity", 0.1);
-			
-			//hoverLineGroup.call( tipLineChart );
-			
-			circleBenchMark = svg.append("circle")
-				.attr("opacity", 0.00001)
-				.attr({	r: dispCircleRadius, fill: 'SpringGreen' });
 
-			circleMF = svg.append("circle")
-				.attr("opacity", 0.00001)
-				.attr({	r: dispCircleRadius, fill: 'Turquoise' });	
-		  
-		    d3.select(".chart2").on("mouseover", function() { 
-			  
-			  console.log('mouseover bugs');
-			  
-			}).on("mousemove", function() {
-			  var xCoOrd = d3.mouse(this)[0];
-			  var yCoOrd = d3.mouse(this)[1];
-			  //console.log("x and y coordinate Function ENTRY: " + [xCoOrd , yCoOrd] );
-			  hoverLine.attr("x1", xCoOrd - margin.left ).attr("x2", xCoOrd - margin.left ).style("opacity", 0.2);
-			  
-			  
-			    var pathLength = benchMarkPath.node().getTotalLength();
-				//console.log("bm length " + pathLength );
-				//since our hover line has an offset from the xAxis our search
-				//needs to begin from there rather than plain xCoord
-				var x = xCoOrd - margin.left;
-				var beginning = x,
-					end = pathLength,
-					target;
-				while (true) {
-					target = Math.floor((beginning + end) / 2);
-					posBM = benchMarkPath.node().getPointAtLength(target);
-					if ((target === end || target === beginning) && posBM.x !== x) {
-						break;
-					}
-					if (posBM.x > x) end = target;
-					else if (posBM.x < x) beginning = target;
-					else break; //position found
-				}
-				//the code below is for the 2nd path i.e. MF line
-				//console.log("BEFORE : x and y coordinate where vertical line intersects graph: " + [posBM.x, posBM.y] );
-				//decorate the dialogue
-				
-				locDt = xScaler.invert(posBM.x);
-				
-				tipLineChart//.attr("transform","translate("+(width - posBM.x)+","+(height - posBM.y)+")")
-				.html(function(d) {
-					
-					return "<strong>dt:</strong> " +locDt.getDate()+"-"+(parseInt(locDt.getMonth())+1)+"-"+locDt.getFullYear() +"<br><strong>"+ dispBMName +" % Chg:</strong> " + retDailyChange( sliced_bm_Data_ , ( xScaler.invert(posBM.x)) ).toFixed(2) + "</span>";
-				})		
-				
-				if(bm_Data_ != current_MF_Data_){
-						pathLength = MFPath.node().getTotalLength();
-						//console.log("MF length " + pathLength );
-						//since our hover line has an offset from the xAxis our search
-						//needs to begin from there rather than plain xCoord
-						x = xCoOrd - margin.left;
-						beginning = x,
-							end = pathLength,
-							target;
-						while (true) {
-							target = Math.floor((beginning + end) / 2);
-							posMF = MFPath.node().getPointAtLength(target);
-							if ((target === end || target === beginning) && posMF.x !== x) {
-								break;
-							}
-							if (posMF.x > x) end = target;
-							else if (posMF.x < x) beginning = target;
-							else break; //position found
-						}
-						//console.log("x and y coordinate where vertical line intersects graph: " + [posBM.x, posBM.y,posMF.x, posMF.y] );
-						circleMF.attr("opacity", 0.5)
-							.attr("cx", posMF.x )
-							.attr("cy", posMF.y)
-						//console.log("data where vertical line intersects graph: " + [ xScaler.invert(posBM.x), yScaler.invert(posBM.y) ,xScaler.invert(posMF.x), yScaler.invert(posMF.y)]);	
-						
-						locDt = xScaler.invert(posMF.x);
-						//html for hover box
-						tipLineChart.html(function(d) {
-							
-							return "<strong>dt:</strong> " +locDt.getDate()+"-"+(parseInt(locDt.getMonth())+1)+"-"+locDt.getFullYear() +"<br><strong>"+ dispBMName + "% Chg:</strong> " + retDailyChange( sliced_bm_Data_ , ( xScaler.invert(posBM.x)) ).toFixed(2) + "</span><br><strong>"+dispMFName+ "% Change:</strong>" + retDailyChange( current_Data_ , ( xScaler.invert(posMF.x)) ).toFixed(2);
-						})
-				}
-				// end code for 2nd path
-				circleBenchMark.attr("opacity", 0.5)
-					.attr("cx", posBM.x )
-					.attr("cy", posBM.y)
-					
-				
-				
-				
-				//console.log("data where vertical line intersects graph: " + [xScaler.invert(posBM.x), yScaler.invert(posBM.y)]);
 
-			  
-			  tipLineChart.show();
-			  //console.log('mousemove x', ( d3.mouse(this)[0] ));
-			  //console.log('mousemove y', ( d3.mouse(this)[1] ));
-			  
-			})  .on("mouseout", function() {
-				//console.log('mouseout');
-				hoverLine.style("opacity", 0.001);
-				circleBenchMark.attr("opacity", 0.001);
-				circleMF.attr("opacity", 0.001);
-				
-				tipLineChart.hide();
-		  });
-		  		  // Hover line. 
-				  
 		  
 		  xScaler.domain(d3.extent(bm_Data_, function(d) { return d.dt; }));
 		  yScaler.domain(d3.extent(bm_Data_, function(d) { return d.closing; }));
 		  
 		  svg.append("g")
 			  .attr("class", "x axis")
-			  .attr("transform", "translate("+marOffsetX+"," + height + ")")
+			  .attr("transform", "translate(0," + height + ")")
 			  .call(xAxis);
 
 		  svg.append("g")
@@ -873,44 +946,165 @@
 	<svg class="chart22" id="OK"></svg>
 	<script>	
 		var margin = {top: 20, right: 30, bottom: 20, left: 30},
-		width = MFVsBMWidth - margin.left - margin.right,
-		height = MFVsBMHeight - margin.top - margin.bottom;
+		width22 = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
+                height22 = parseFloat( $("#upperLCContainer").css("height") ) - margin.top - margin.bottom;
 		//width = 700 , height = 500 ;
+		window.offset22 = parseFloat( $("#upperLCContainer").css("width") )/2 + margin.left; 
 
 		var parsedt = d3.time.format("%d-%b-%y").parse;
 		//hopefully store dragslider values
 		window.marOffsetX = margin.right;
 		window.marOffsetY = margin.top;
 		
-		var xScaler = d3.time.scale()
-			.range([0, width]);
+		var xScaler22 = d3.time.scale()
+			.range([0, width22]);
 
-		var yScaler = d3.scale.linear()
-			.range([height, 0]);
+		var yScaler22 = d3.scale.linear()
+			.range([height22, 0]);
 
 		var xAxis = d3.svg.axis()
-			.scale(xScaler)
+			.scale(xScaler22)
 			.orient("bottom");
 
 		var yAxis = d3.svg.axis()
-			.scale(yScaler)
+			.scale(yScaler22)
 			.orient("left");
 
-		var tipLineChart = d3.tip()
-				  .attr('class', 'd3-tip')
-				  //.offset([0, 0])
-				  //.html(function(d) {
-					//return "<strong>Risk:</strong> " + d.x1 +"<br><strong>Return:</strong> " + d.x2 + "</span>";
-				  //})		
-			
 		var svg = d3.select(".chart22")
-			.attr("width", width + margin.left + margin.right)
-			.attr("height", height + margin.top + margin.bottom)
+			.attr("width", width22 + margin.left + margin.right)
+			.attr("height", height22 + margin.top + margin.bottom)
 			.append("g")
 			.attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
-			//.attr("transform", "translate(0," + margin.top + ")");
+		 //add hover line
+
+                  // Hover line.
+                var hoverLineGroup = svg.append("g")
+                                  .attr("class", "hover-line");
+
+                window.hoverLine22 = hoverLineGroup
+                                .append("line")
+                                .attr("x1", 0).attr("x2", 0)
+                                .attr("y1", 0).attr("y2", height22)
+				.style("opacity", 0.1);
+                        // Hide hover line by default.
+
+
+                window.tipLineChart22 = d3.select("body")
+                //window.tipLineChart = svg 
+                                .append("div-tool")  // declare the tooltip div
+                                .attr("class", "d3-tip")              // apply the 'tooltip' class
+                                .style("opacity", 0);
+
+
+               circleBenchMark22 = svg.append("circle")
+                                .attr("opacity", 0.00001)
+                                .attr({ r: dispCircleRadius, fill: 'red' });
+
+                ltOffset = width + 10;
+
+
+                d3.select(".chart22")
+			.on("mouseover", function() {
+
+                          console.log('mouseover bugs');
+
+                        })
+			.on("mousemove", function() {
+                          var xCoOrd = d3.mouse(this)[0];
+                          var yCoOrd = d3.mouse(this)[1];
+
+			if ( xCoOrd >= (width22 + margin.left +2 )) return 1;
+			if ( xCoOrd < margin.left) return 1;
+
+			console.log('DEUCHE '+xCoOrd+' '+yCoOrd);
+		  	locData = storeAreaData['.chart22'];
+		  	xScaler22.domain(d3.extent( locData.BM  , function(d) { return d.dt; }));
+                          //if( $("#FromDt").datepicker( "widget" ).is(":visible") || $("#ToDt").datepicker( "widget" ).is(":visible") ) return 1;
+
+/*
+                          if( xCoOrd < (ltOffset) || xCoOrd > (MFVsBMWidth+ltOffset) || yCoOrd < LineChartBegin || yCoOrd > LineChartEnd ){
+                                tipLineChart.style("opacity",0);
+                                hoverLine.style("opacity", 0.001);
+                                circleBenchMark.attr("opacity", 0.001);
+                          }
+                          else
+*/
+			{
+                        xOff = offset22;
+                        yOff = 0.0;
+                        // no idea why this is needed defaultOffset i mean ..
+                        defaultOffset = 20;
+                        hoverWidth = parseFloat($('.d3-tip').css("width"));
+                        hoverHeight = parseFloat($('.d3-tip').css("height"));
+
+                        if ( (xCoOrd < width22/2) )
+                        {
+                                xOff = xOff + width22 - hoverWidth + 2*margin.left;
+				yOff = 2*hoverHeight;
+                        }
+			else if ( (xCoOrd >= width22/2) )
+                        {
+                                xOff = xOff + margin.left + margin.right;// + hoverWidth;
+				yOff = 2*hoverHeight;
+                        }
+
+
+			hoverLine22.style("opacity", 1);
+                        //circleBenchMark22.attr("opacity", 0.4);
+                        tipLineChart22.transition().duration(200)
+			.style("opacity", 0.7);
+                        if ( xCoOrd >= (width22 + margin.left  ))
+                                hoverLine22.attr("x1", width22  ).attr("x2", width22 ).style("opacity", 0.3);
+                        else
+                                hoverLine22.attr("x1", xCoOrd - marOffsetX ).attr("x2", xCoOrd - marOffsetX ).style("opacity", 0.3);
+                        locDt = new Date ( xScaler22.invert(xCoOrd - marOffsetX) );
+                        var formHtml = '';
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+">" +locDt.getDate()+" "+MnthRev[(locDt.getMonth())+1]+","+locDt.getFullYear() +" </p></strong>";
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+"> (Cumulative Returns) </p></strong>";
+                        formHtml += retDailyData( locDt ,".chart22" );
+
+
+                        tipLineChart22 .html( formHtml)
+                                .style("left", (xOff ) + "px")
+                                .style("top", (yOff) + "px");
+
+                        // Use event.pageX / event.pageY here
+                        }
+
+                            var pathLength = benchMarkPath.node().getTotalLength();
+                                //console.log("bm length " + pathLength );
+                                //since our hover line has an offset from the xAxis our search
+                                //needs to begin from there rather than plain xCoord
+                                var x = xCoOrd - margin.left;
+                                var beginning = x,
+                                        end = pathLength,
+                                        target;
+                                while (true) {
+                                        target = Math.floor((beginning + end) / 2);
+                                        posBM = benchMarkPath.node().getPointAtLength(target);
+                                        if ((target === end || target === beginning) && posBM.x !== x) {
+                                                break;
+                                        }
+                                        if (posBM.x > x) end = target;
+                                        else if (posBM.x < x) beginning = target;
+                                        else break; //position found
+                                }
+
+                                //circleBenchMark22.attr("opacity", 0.5)
+                                //        .attr("cx", posBM.x )
+                                //        .attr("cy", posBM.y)
+
+                        })  .on("mouseout", function() {
+                                console.log('bill');
+                                circleBenchMark22.attr("opacity", 0.001);
+                                tipLineChart22.transition().duration(200)
+				.style("opacity",0);
+                                //hoverLine.style("opacity",0);
+                  });
+                                  // Hover line.
+
+			
 		
-		svg.call( tipLineChart );
 		//d3.tsv("data.tsv", function(error, data) {
 		//**********below is where you should be placing Benchmark data / arrays via static in django ********//
 		 
@@ -918,131 +1112,11 @@
 		  
 		  //add hover line
 		  
-		  // Hover line. 
-			var hoverLineGroup = svg.append("g")
-								.attr("class", "hover-line");
-			var hoverLine = hoverLineGroup
-				.append("line")
-					.attr("x1", 10).attr("x2", 10) 
-					.attr("y1", 0).attr("y2", height); 
-			// Hide hover line by default.
-			hoverLine.style("opacity", 0.1);
-			
-			//hoverLineGroup.call( tipLineChart );
-			
-			circleBenchMark = svg.append("circle")
-				.attr("opacity", 0.00001)
-				.attr({	r: dispCircleRadius, fill: 'SpringGreen' });
-
-			circleMF = svg.append("circle")
-				.attr("opacity", 0.00001)
-				.attr({	r: dispCircleRadius, fill: 'Turquoise' });	
 		  
-		    d3.select(".chart2").on("mouseover", function() { 
-			  
-			  console.log('mouseover bugs');
-			  
-			}).on("mousemove", function() {
-			  var xCoOrd = d3.mouse(this)[0];
-			  var yCoOrd = d3.mouse(this)[1];
-			  //console.log("x and y coordinate Function ENTRY: " + [xCoOrd , yCoOrd] );
-			  hoverLine.attr("x1", xCoOrd - margin.left ).attr("x2", xCoOrd - margin.left ).style("opacity", 0.2);
-			  
-			  
-			    var pathLength = benchMarkPath.node().getTotalLength();
-				//console.log("bm length " + pathLength );
-				//since our hover line has an offset from the xAxis our search
-				//needs to begin from there rather than plain xCoord
-				var x = xCoOrd - margin.left;
-				var beginning = x,
-					end = pathLength,
-					target;
-				while (true) {
-					target = Math.floor((beginning + end) / 2);
-					posBM = benchMarkPath.node().getPointAtLength(target);
-					if ((target === end || target === beginning) && posBM.x !== x) {
-						break;
-					}
-					if (posBM.x > x) end = target;
-					else if (posBM.x < x) beginning = target;
-					else break; //position found
-				}
-				//the code below is for the 2nd path i.e. MF line
-				//console.log("BEFORE : x and y coordinate where vertical line intersects graph: " + [posBM.x, posBM.y] );
-				//decorate the dialogue
-				
-				locDt = xScaler.invert(posBM.x);
-				
-				tipLineChart//.attr("transform","translate("+(width - posBM.x)+","+(height - posBM.y)+")")
-				.html(function(d) {
-					
-					return "<strong>dt:</strong> " +locDt.getDate()+"-"+(parseInt(locDt.getMonth())+1)+"-"+locDt.getFullYear() +"<br><strong>"+ dispBMName +" % Chg:</strong> " + retDailyChange( sliced_bm_Data_ , ( xScaler.invert(posBM.x)) ).toFixed(2) + "</span>";
-				})		
-				
-				if(bm_Data_ != current_MF_Data_){
-						pathLength = MFPath.node().getTotalLength();
-						//console.log("MF length " + pathLength );
-						//since our hover line has an offset from the xAxis our search
-						//needs to begin from there rather than plain xCoord
-						x = xCoOrd - margin.left;
-						beginning = x,
-							end = pathLength,
-							target;
-						while (true) {
-							target = Math.floor((beginning + end) / 2);
-							posMF = MFPath.node().getPointAtLength(target);
-							if ((target === end || target === beginning) && posMF.x !== x) {
-								break;
-							}
-							if (posMF.x > x) end = target;
-							else if (posMF.x < x) beginning = target;
-							else break; //position found
-						}
-						//console.log("x and y coordinate where vertical line intersects graph: " + [posBM.x, posBM.y,posMF.x, posMF.y] );
-						circleMF.attr("opacity", 0.5)
-							.attr("cx", posMF.x )
-							.attr("cy", posMF.y)
-						//console.log("data where vertical line intersects graph: " + [ xScaler.invert(posBM.x), yScaler.invert(posBM.y) ,xScaler.invert(posMF.x), yScaler.invert(posMF.y)]);	
-						
-						locDt = xScaler.invert(posMF.x);
-						//html for hover box
-						tipLineChart.html(function(d) {
-							
-							return "<strong>dt:</strong> " +locDt.getDate()+"-"+(parseInt(locDt.getMonth())+1)+"-"+locDt.getFullYear() +"<br><strong>"+ dispBMName + "% Chg:</strong> " + retDailyChange( sliced_bm_Data_ , ( xScaler.invert(posBM.x)) ).toFixed(2) + "</span><br><strong>"+dispMFName+ "% Change:</strong>" + retDailyChange( current_Data_ , ( xScaler.invert(posMF.x)) ).toFixed(2);
-						})
-				}
-				// end code for 2nd path
-				circleBenchMark.attr("opacity", 0.5)
-					.attr("cx", posBM.x )
-					.attr("cy", posBM.y)
-					
-				
-				
-				
-				//console.log("data where vertical line intersects graph: " + [xScaler.invert(posBM.x), yScaler.invert(posBM.y)]);
-
-			  
-			  tipLineChart.show();
-			  //console.log('mousemove x', ( d3.mouse(this)[0] ));
-			  //console.log('mousemove y', ( d3.mouse(this)[1] ));
-			  
-			})  .on("mouseout", function() {
-				//console.log('mouseout');
-				hoverLine.style("opacity", 0.001);
-				circleBenchMark.attr("opacity", 0.001);
-				circleMF.attr("opacity", 0.001);
-				
-				tipLineChart.hide();
-		  });
-		  		  // Hover line. 
-				  
-		  
-		  xScaler.domain(d3.extent(bm_Data_, function(d) { return d.dt; }));
-		  yScaler.domain(d3.extent(bm_Data_, function(d) { return d.closing; }));
 		  
 		  svg.append("g")
 			  .attr("class", "x axis")
-			  .attr("transform", "translate("+marOffsetX+"," + height + ")")
+			  .attr("transform", "translate(0," + height22 + ")")
 			  .call(xAxis);
 
 		  svg.append("g")
@@ -1064,12 +1138,40 @@
 
 	</div>
 
+	<div id = "upperHistContainer">
+	<div id = "MFHist">
+	<svg class="histFlat1"></svg>
+        <script>
+
+		genHist(".histFlat1", "FLAT1", 0);
+		
+	</script>	
+
+	</div>
+
+	<div id = "MFHist">
+	
+	<svg class="histFlat2"></svg>
+        <script>
+		genHist(".histFlat2", "FLAT2", 0);
+
+	</script>	
+	</div>
+	
+	</div>
+
+
+<!-- end container for upper shite -->
+</div>
+
 	<div id = "ListTextContainer">
 	
 	 <div id = "BMList">	
 		<label for="search">Another Benchmark ? </label>
 		<input id="search">
 	</div>
+
+
 
 	<div id = "MFvsBMText">
 	<div id = "info1">
@@ -1092,29 +1194,9 @@
 
 	</div>
 
-	<div id = "upperHistContainer">
-	<div id = "MFHist">
-	<svg class="histFlat1"></svg>
-        <script>
 
-		genHist(".histFlat1", "FLAT1");
-		
-	</script>	
-
-	</div>
-
-	<div id = "MFHist">
-	
-	<svg class="histFlat2"></svg>
-        <script>
-		genHist(".histFlat2", "FLAT2");
-
-	</script>	
-	</div>
-	
-	</div>
-
-
+<!-- lower shite -->
+<div id = "lowerHouse">
 
 	<div id = "lowerLCContainer">
 
@@ -1122,8 +1204,8 @@
 	<svg class="chart23" id="OK"></svg>
 	<script>	
 		var margin = {top: 20, right: 30, bottom: 20, left: 30},
-		width = MFVsBMWidth - margin.left - margin.right,
-		height = MFVsBMHeight - margin.top - margin.bottom;
+		width = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
+                height = parseFloat( $("#lowerLCContainer").css("height") ) - margin.top - margin.bottom;	
 		//width = 700 , height = 500 ;
 
 		var parsedt = d3.time.format("%d-%b-%y").parse;
@@ -1145,12 +1227,6 @@
 			.scale(yScaler)
 			.orient("left");
 
-		var tipLineChart = d3.tip()
-				  .attr('class', 'd3-tip')
-				  //.offset([0, 0])
-				  //.html(function(d) {
-					//return "<strong>Risk:</strong> " + d.x1 +"<br><strong>Return:</strong> " + d.x2 + "</span>";
-				  //})		
 			
 		var svg = d3.select(".chart23")
 			.attr("width", width + margin.left + margin.right)
@@ -1159,131 +1235,6 @@
 			.attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
 			//.attr("transform", "translate(0," + margin.top + ")");
 		
-		svg.call( tipLineChart );
-		//d3.tsv("data.tsv", function(error, data) {
-		//**********below is where you should be placing Benchmark data / arrays via static in django ********//
-		 
-		  //to init we call with 0 ..will need to change it after template mess
-		  
-		  //add hover line
-		  
-		  // Hover line. 
-			var hoverLineGroup = svg.append("g")
-								.attr("class", "hover-line");
-			var hoverLine = hoverLineGroup
-				.append("line")
-					.attr("x1", 10).attr("x2", 10) 
-					.attr("y1", 0).attr("y2", height); 
-			// Hide hover line by default.
-			hoverLine.style("opacity", 0.1);
-			
-			//hoverLineGroup.call( tipLineChart );
-			
-			circleBenchMark = svg.append("circle")
-				.attr("opacity", 0.00001)
-				.attr({	r: dispCircleRadius, fill: 'SpringGreen' });
-
-			circleMF = svg.append("circle")
-				.attr("opacity", 0.00001)
-				.attr({	r: dispCircleRadius, fill: 'Turquoise' });	
-		  
-		    d3.select(".chart2").on("mouseover", function() { 
-			  
-			  console.log('mouseover bugs');
-			  
-			}).on("mousemove", function() {
-			  var xCoOrd = d3.mouse(this)[0];
-			  var yCoOrd = d3.mouse(this)[1];
-			  //console.log("x and y coordinate Function ENTRY: " + [xCoOrd , yCoOrd] );
-			  hoverLine.attr("x1", xCoOrd - margin.left ).attr("x2", xCoOrd - margin.left ).style("opacity", 0.2);
-			  
-			  
-			    var pathLength = benchMarkPath.node().getTotalLength();
-				//console.log("bm length " + pathLength );
-				//since our hover line has an offset from the xAxis our search
-				//needs to begin from there rather than plain xCoord
-				var x = xCoOrd - margin.left;
-				var beginning = x,
-					end = pathLength,
-					target;
-				while (true) {
-					target = Math.floor((beginning + end) / 2);
-					posBM = benchMarkPath.node().getPointAtLength(target);
-					if ((target === end || target === beginning) && posBM.x !== x) {
-						break;
-					}
-					if (posBM.x > x) end = target;
-					else if (posBM.x < x) beginning = target;
-					else break; //position found
-				}
-				//the code below is for the 2nd path i.e. MF line
-				//console.log("BEFORE : x and y coordinate where vertical line intersects graph: " + [posBM.x, posBM.y] );
-				//decorate the dialogue
-				
-				locDt = xScaler.invert(posBM.x);
-				
-				tipLineChart//.attr("transform","translate("+(width - posBM.x)+","+(height - posBM.y)+")")
-				.html(function(d) {
-					
-					return "<strong>dt:</strong> " +locDt.getDate()+"-"+(parseInt(locDt.getMonth())+1)+"-"+locDt.getFullYear() +"<br><strong>"+ dispBMName +" % Chg:</strong> " + retDailyChange( sliced_bm_Data_ , ( xScaler.invert(posBM.x)) ).toFixed(2) + "</span>";
-				})		
-				
-				if(bm_Data_ != current_MF_Data_){
-						pathLength = MFPath.node().getTotalLength();
-						//console.log("MF length " + pathLength );
-						//since our hover line has an offset from the xAxis our search
-						//needs to begin from there rather than plain xCoord
-						x = xCoOrd - margin.left;
-						beginning = x,
-							end = pathLength,
-							target;
-						while (true) {
-							target = Math.floor((beginning + end) / 2);
-							posMF = MFPath.node().getPointAtLength(target);
-							if ((target === end || target === beginning) && posMF.x !== x) {
-								break;
-							}
-							if (posMF.x > x) end = target;
-							else if (posMF.x < x) beginning = target;
-							else break; //position found
-						}
-						//console.log("x and y coordinate where vertical line intersects graph: " + [posBM.x, posBM.y,posMF.x, posMF.y] );
-						circleMF.attr("opacity", 0.5)
-							.attr("cx", posMF.x )
-							.attr("cy", posMF.y)
-						//console.log("data where vertical line intersects graph: " + [ xScaler.invert(posBM.x), yScaler.invert(posBM.y) ,xScaler.invert(posMF.x), yScaler.invert(posMF.y)]);	
-						
-						locDt = xScaler.invert(posMF.x);
-						//html for hover box
-						tipLineChart.html(function(d) {
-							
-							return "<strong>dt:</strong> " +locDt.getDate()+"-"+(parseInt(locDt.getMonth())+1)+"-"+locDt.getFullYear() +"<br><strong>"+ dispBMName + "% Chg:</strong> " + retDailyChange( sliced_bm_Data_ , ( xScaler.invert(posBM.x)) ).toFixed(2) + "</span><br><strong>"+dispMFName+ "% Change:</strong>" + retDailyChange( current_Data_ , ( xScaler.invert(posMF.x)) ).toFixed(2);
-						})
-				}
-				// end code for 2nd path
-				circleBenchMark.attr("opacity", 0.5)
-					.attr("cx", posBM.x )
-					.attr("cy", posBM.y)
-					
-				
-				
-				
-				//console.log("data where vertical line intersects graph: " + [xScaler.invert(posBM.x), yScaler.invert(posBM.y)]);
-
-			  
-			  tipLineChart.show();
-			  //console.log('mousemove x', ( d3.mouse(this)[0] ));
-			  //console.log('mousemove y', ( d3.mouse(this)[1] ));
-			  
-			})  .on("mouseout", function() {
-				//console.log('mouseout');
-				hoverLine.style("opacity", 0.001);
-				circleBenchMark.attr("opacity", 0.001);
-				circleMF.attr("opacity", 0.001);
-				
-				tipLineChart.hide();
-		  });
-		  		  // Hover line. 
 				  
 		  
 		  xScaler.domain(d3.extent(bm_Data_, function(d) { return d.dt; }));
@@ -1291,7 +1242,7 @@
 		  
 		  svg.append("g")
 			  .attr("class", "x axis")
-			  .attr("transform", "translate("+marOffsetX+"," + height + ")")
+			  .attr("transform", "translate(0," + height + ")")
 			  .call(xAxis);
 
 		  svg.append("g")
@@ -1316,8 +1267,8 @@
 	<svg class="chart24" id="OK"></svg>
 	<script>	
 		var margin = {top: 20, right: 30, bottom: 20, left: 30},
-		width = MFVsBMWidth - margin.left - margin.right,
-		height = MFVsBMHeight - margin.top - margin.bottom;
+		width = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
+                height = parseFloat( $("#lowerLCContainer").css("height") ) - margin.top - margin.bottom;
 		//width = 700 , height = 500 ;
 
 		var parsedt = d3.time.format("%d-%b-%y").parse;
@@ -1339,12 +1290,6 @@
 			.scale(yScaler)
 			.orient("left");
 
-		var tipLineChart = d3.tip()
-				  .attr('class', 'd3-tip')
-				  //.offset([0, 0])
-				  //.html(function(d) {
-					//return "<strong>Risk:</strong> " + d.x1 +"<br><strong>Return:</strong> " + d.x2 + "</span>";
-				  //})		
 			
 		var svg = d3.select(".chart24")
 			.attr("width", width + margin.left + margin.right)
@@ -1353,7 +1298,7 @@
 			.attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
 			//.attr("transform", "translate(0," + margin.top + ")");
 		
-		svg.call( tipLineChart );
+		//svg.call( tipLineChart );
 		//d3.tsv("data.tsv", function(error, data) {
 		//**********below is where you should be placing Benchmark data / arrays via static in django ********//
 		 
@@ -1381,111 +1326,13 @@
 				.attr("opacity", 0.00001)
 				.attr({	r: dispCircleRadius, fill: 'Turquoise' });	
 		  
-		    d3.select(".chart2").on("mouseover", function() { 
-			  
-			  console.log('mouseover bugs');
-			  
-			}).on("mousemove", function() {
-			  var xCoOrd = d3.mouse(this)[0];
-			  var yCoOrd = d3.mouse(this)[1];
-			  //console.log("x and y coordinate Function ENTRY: " + [xCoOrd , yCoOrd] );
-			  hoverLine.attr("x1", xCoOrd - margin.left ).attr("x2", xCoOrd - margin.left ).style("opacity", 0.2);
-			  
-			  
-			    var pathLength = benchMarkPath.node().getTotalLength();
-				//console.log("bm length " + pathLength );
-				//since our hover line has an offset from the xAxis our search
-				//needs to begin from there rather than plain xCoord
-				var x = xCoOrd - margin.left;
-				var beginning = x,
-					end = pathLength,
-					target;
-				while (true) {
-					target = Math.floor((beginning + end) / 2);
-					posBM = benchMarkPath.node().getPointAtLength(target);
-					if ((target === end || target === beginning) && posBM.x !== x) {
-						break;
-					}
-					if (posBM.x > x) end = target;
-					else if (posBM.x < x) beginning = target;
-					else break; //position found
-				}
-				//the code below is for the 2nd path i.e. MF line
-				//console.log("BEFORE : x and y coordinate where vertical line intersects graph: " + [posBM.x, posBM.y] );
-				//decorate the dialogue
-				
-				locDt = xScaler.invert(posBM.x);
-				
-				tipLineChart//.attr("transform","translate("+(width - posBM.x)+","+(height - posBM.y)+")")
-				.html(function(d) {
-					
-					return "<strong>dt:</strong> " +locDt.getDate()+"-"+(parseInt(locDt.getMonth())+1)+"-"+locDt.getFullYear() +"<br><strong>"+ dispBMName +" % Chg:</strong> " + retDailyChange( sliced_bm_Data_ , ( xScaler.invert(posBM.x)) ).toFixed(2) + "</span>";
-				})		
-				
-				if(bm_Data_ != current_MF_Data_){
-						pathLength = MFPath.node().getTotalLength();
-						//console.log("MF length " + pathLength );
-						//since our hover line has an offset from the xAxis our search
-						//needs to begin from there rather than plain xCoord
-						x = xCoOrd - margin.left;
-						beginning = x,
-							end = pathLength,
-							target;
-						while (true) {
-							target = Math.floor((beginning + end) / 2);
-							posMF = MFPath.node().getPointAtLength(target);
-							if ((target === end || target === beginning) && posMF.x !== x) {
-								break;
-							}
-							if (posMF.x > x) end = target;
-							else if (posMF.x < x) beginning = target;
-							else break; //position found
-						}
-						//console.log("x and y coordinate where vertical line intersects graph: " + [posBM.x, posBM.y,posMF.x, posMF.y] );
-						circleMF.attr("opacity", 0.5)
-							.attr("cx", posMF.x )
-							.attr("cy", posMF.y)
-						//console.log("data where vertical line intersects graph: " + [ xScaler.invert(posBM.x), yScaler.invert(posBM.y) ,xScaler.invert(posMF.x), yScaler.invert(posMF.y)]);	
-						
-						locDt = xScaler.invert(posMF.x);
-						//html for hover box
-						tipLineChart.html(function(d) {
-							
-							return "<strong>dt:</strong> " +locDt.getDate()+"-"+(parseInt(locDt.getMonth())+1)+"-"+locDt.getFullYear() +"<br><strong>"+ dispBMName + "% Chg:</strong> " + retDailyChange( sliced_bm_Data_ , ( xScaler.invert(posBM.x)) ).toFixed(2) + "</span><br><strong>"+dispMFName+ "% Change:</strong>" + retDailyChange( current_Data_ , ( xScaler.invert(posMF.x)) ).toFixed(2);
-						})
-				}
-				// end code for 2nd path
-				circleBenchMark.attr("opacity", 0.5)
-					.attr("cx", posBM.x )
-					.attr("cy", posBM.y)
-					
-				
-				
-				
-				//console.log("data where vertical line intersects graph: " + [xScaler.invert(posBM.x), yScaler.invert(posBM.y)]);
-
-			  
-			  tipLineChart.show();
-			  //console.log('mousemove x', ( d3.mouse(this)[0] ));
-			  //console.log('mousemove y', ( d3.mouse(this)[1] ));
-			  
-			})  .on("mouseout", function() {
-				//console.log('mouseout');
-				hoverLine.style("opacity", 0.001);
-				circleBenchMark.attr("opacity", 0.001);
-				circleMF.attr("opacity", 0.001);
-				
-				tipLineChart.hide();
-		  });
-		  		  // Hover line. 
-				  
 		  
 		  xScaler.domain(d3.extent(bm_Data_, function(d) { return d.dt; }));
 		  yScaler.domain(d3.extent(bm_Data_, function(d) { return d.closing; }));
 		  
 		  svg.append("g")
 			  .attr("class", "x axis")
-			  .attr("transform", "translate("+marOffsetX+"," + height + ")")
+			  .attr("transform", "translate(0," + height + ")")
 			  .call(xAxis);
 
 		  svg.append("g")
@@ -1514,7 +1361,7 @@
 	<svg class="histFlat3"></svg>
         <script>
 
-		genHist(".histFlat3", "BULL2");
+		genHist(".histFlat3", "BULL2", 1);
 
 	</script>	
 
@@ -1525,13 +1372,14 @@
 	<svg class="histFlat4"></svg>
         <script>
 
-		genHist(".histFlat4", "BULL3");
+		genHist(".histFlat4", "BULL3", 1);
 		//now call the message geerator
 		genMsg();		
 	</script>	
 	</div>
 	
-	</div>
+<!-- lower shite -->
+</div>
 
 	<script>
 	  $(function() {
@@ -1626,6 +1474,34 @@
 				init();
 
 			})();
+
+
+		(function() {
+    				document.onmousemove = handleMouseMove;
+    					function handleMouseMove(event) {
+        				var dot, eventDoc, doc, body, pageX, pageY;
+
+        				event = event || window.event; // IE-ism
+
+        // If pageX/Y aren't available and clientX/Y are,
+        // calculate pageX/Y - logic taken from jQuery.
+        // (This is to support old IE)
+        				if (event.pageX == null && event.clientX != null) {
+            					eventDoc = (event.target && event.target.ownerDocument) || document;
+            					doc = eventDoc.documentElement;
+           					 body = eventDoc.body;
+
+            					event.pageX = event.clientX +
+              						(doc && doc.scrollLeft || body && body.scrollLeft || 0) -
+              						(doc && doc.clientLeft || body && body.clientLeft || 0);
+            					event.pageY = event.clientY +
+              						(doc && doc.scrollTop  || body && body.scrollTop  || 0) -
+              						(doc && doc.clientTop  || body && body.clientTop  || 0 );
+        				}
+
+        // Use event.pageX / event.pageY here
+    				      }
+		     })();
 	</script>
 	
 </body>
