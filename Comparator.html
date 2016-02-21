@@ -455,15 +455,15 @@
 			//
 			
 			var xScaler = d3.time.scale()
-			.range([0, width]);
+			.range([0, LCCWidth]);
 
 			var yScaler = d3.scale.linear()
-			.range([height , 0]);
+			.range([LCCHeight , 0]);
 			
 			var xAxis = d3.svg.axis()
 			.scale(xScaler)
 			.orient("bottom")
-			//.innerTickSize(-height)
+			//.innerTickSize(-LCCHeight)
                         //.outerTickSize(0)
 			.tickFormat(d3.time.format("%b"));
 
@@ -471,7 +471,7 @@
 			.scale(yScaler)
 			.orient("left")
 			//.tickValues([-1,-0.5, -0.25, 0,0.05 ,0.10, 0.25 ,0.5,1])
-			.innerTickSize(-width)
+			.innerTickSize(-LCCWidth)
                         .outerTickSize(0)
 			.tickFormat(d3.format("%"));
 			
@@ -511,14 +511,14 @@
 				var t2 = yScaler(AssetperiodRet);
 				if( t1 == 0 ) t1=t1+10;
 				if( t2 == 0 ) t2=t2+10;
-				if( t1 == height ) t1 = height - 10;
-				if( t2 == height ) t2 = height - 10;
+				if( t1 == LCCHeight ) t1 = LCCHeight - 10;
+				if( t2 == LCCHeight ) t2 = LCCHeight - 10;
 					
 				console.log('t1 t2 '+t1+' '+t2);
 
 				if ( t1 > t2 && Math.abs(t1-t2) < 50 ){
-					if(height - t1 < 50){
-						t1 = height - 50;
+					if(LCCHeight - t1 < 50){
+						t1 = LCCHeight - 50;
 					}
 						t2 = t1 - 50;
 				}	
@@ -874,52 +874,122 @@
 	<svg class="chart2" id="OK"></svg>
 	<script>
 		initGlobalSetBM();	
+
 		var margin = {top: 20, right: 30, bottom: 20, left: 30},
-		width = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
-		height = parseFloat( $("#upperLCContainer").css("height") ) - margin.top - margin.bottom;
+		width2 = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
+                height2 = parseFloat( $("#upperLCContainer").css("height") ) - margin.top - margin.bottom;
 		//width = 700 , height = 500 ;
+		window.offset2 =  margin.left; 
+		window.LCCWidth = width2;
+		window.LCCHeight = height2;
 
 		var parsedt = d3.time.format("%d-%b-%y").parse;
 		//hopefully store dragslider values
 		window.marOffsetX = margin.right;
 		window.marOffsetY = margin.top;
 		
-		var xScaler = d3.time.scale()
-			.range([0, width]);
+		var xScaler2 = d3.time.scale()
+			.range([0, width2]);
 
-		var yScaler = d3.scale.linear()
-			.range([height, 0]);
+		var yScaler2 = d3.scale.linear()
+			.range([height2, 0]);
 
 		var xAxis = d3.svg.axis()
-			.scale(xScaler)
+			.scale(xScaler2)
 			.orient("bottom");
 
 		var yAxis = d3.svg.axis()
-			.scale(yScaler)
-			.orient("left")
-			//.tickValues([-2,-1,-0.50,-0.20,0,0.10,0.30,0.50,1 ,2])
-			.tickValues([-10,0, 10])
-                        .innerTickSize(-width)
-                        .outerTickSize(0)
-                        .tickPadding(10);
+			.scale(yScaler2)
+			.orient("left");
 
-			
 		var svg = d3.select(".chart2")
-			.attr("width", width + margin.left + margin.right)
-			.attr("height", height + margin.top + margin.bottom)
+			.attr("width", width2 + margin.left + margin.right)
+			.attr("height", height2 + margin.top + margin.bottom)
 			.append("g")
 			.attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
-			//.attr("transform", "translate(0," + margin.top + ")");
+		 //add hover line
+                var hoverLineGroup = svg.append("g")
+                                  .attr("class", "hover-line");
+
+                window.hoverLine2 = hoverLineGroup
+                                .append("line")
+                                .attr("x1", 0).attr("x2", 0)
+                                .attr("y1", 0).attr("y2", height2)
+                                .style("opacity", 0.1);
+
+                  // Hover line.
 
 
 
-		  
-		  xScaler.domain(d3.extent(bm_Data_, function(d) { return d.dt; }));
-		  yScaler.domain(d3.extent(bm_Data_, function(d) { return d.closing; }));
-		  
+                d3.select(".chart2")
+			.on("mouseover", function() {
+
+                          console.log('mouseover bugs');
+
+                        })
+			.on("mousemove", function() {
+                          var xCoOrd = d3.mouse(this)[0];
+                          var yCoOrd = d3.mouse(this)[1];
+
+			if ( xCoOrd >= (width2 + margin.left +2 )) return 1;
+			if ( xCoOrd < margin.left) return 1;
+
+			console.log('DEUCHE '+xCoOrd+' '+yCoOrd);
+		  	locData = storeAreaData['.chart2'];
+		  	xScaler2.domain(d3.extent( locData.BM  , function(d) { return d.dt; }));
+			
+                        xOff = offset2;
+                        yOff = 0.0;
+                        // no idea why this is needed defaultOffset i mean ..
+                        defaultOffset = 20;
+                        hoverWidth = parseFloat($('.d3-tip').css("width"));
+                        hoverHeight = parseFloat($('.d3-tip').css("height"));
+
+                        if ( (xCoOrd < width2/2) )
+                        {
+                                xOff = xOff + width2 - hoverWidth + 2*margin.left;
+				yOff = 2*hoverHeight;
+                        }
+			else if ( (xCoOrd >= width2/2) )
+                        {
+                                xOff = xOff + margin.left + margin.right;// + hoverWidth;
+				yOff = 2*hoverHeight;
+                        }
+
+
+			hoverLine2.style("opacity", 1);
+                        //circleBenchMark22.attr("opacity", 0.4);
+                        tipLineChart22.transition().duration(200)
+			.style("opacity", 0.7);
+                        if ( xCoOrd >= (width2 + margin.left  ))
+                                hoverLine2.attr("x1", width2  ).attr("x2", width2 ).style("opacity", 0.5);
+                        else
+                                hoverLine2.attr("x1", xCoOrd - marOffsetX ).attr("x2", xCoOrd - marOffsetX ).style("opacity", 0.5);
+                        locDt = new Date ( xScaler2.invert(xCoOrd - marOffsetX) );
+                        var formHtml = '';
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+">" +locDt.getDate()+" "+MnthRev[(locDt.getMonth())+1]+","+locDt.getFullYear() +" </p></strong>";
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+"> (Cumulative Returns) </p></strong>";
+                        formHtml += retDailyData( locDt ,".chart2" );
+
+
+                        tipLineChart22 .html( formHtml)
+                                .style("left", (xOff ) + "px")
+                                .style("top", (yOff) + "px");
+
+                        // Use event.pageX / event.pageY here
+
+                        })  .on("mouseout", function() {
+                                console.log('bill');
+                                tipLineChart22.transition().duration(200)
+				.style("opacity",0);
+                                hoverLine2.style("opacity",0);
+                  });
+                                  // Hover line.
+
+			
 		  svg.append("g")
 			  .attr("class", "x axis")
-			  .attr("transform", "translate(0," + height + ")")
+			  .attr("transform", "translate(0," + height2 + ")")
 			  .call(xAxis);
 
 		  svg.append("g")
@@ -929,8 +999,9 @@
 			  .attr("transform", "rotate(-90)")
 			  .attr("y", 2)
 			  .attr("dy", "1em")
-			  .style("text-anchor", "end")
-			  .text("Cumulative Change (%)");
+
+
+
 		//call the final rendering
 		_reScaleBM_MF_axes( ".chart2", "FLAT1", 1); 	
 		
@@ -1000,7 +1071,6 @@
                                 .attr("opacity", 0.00001)
                                 .attr({ r: dispCircleRadius, fill: 'red' });
 
-                ltOffset = width + 10;
 
 
                 d3.select(".chart22")
@@ -1019,17 +1089,7 @@
 			console.log('DEUCHE '+xCoOrd+' '+yCoOrd);
 		  	locData = storeAreaData['.chart22'];
 		  	xScaler22.domain(d3.extent( locData.BM  , function(d) { return d.dt; }));
-                          //if( $("#FromDt").datepicker( "widget" ).is(":visible") || $("#ToDt").datepicker( "widget" ).is(":visible") ) return 1;
-
-/*
-                          if( xCoOrd < (ltOffset) || xCoOrd > (MFVsBMWidth+ltOffset) || yCoOrd < LineChartBegin || yCoOrd > LineChartEnd ){
-                                tipLineChart.style("opacity",0);
-                                hoverLine.style("opacity", 0.001);
-                                circleBenchMark.attr("opacity", 0.001);
-                          }
-                          else
-*/
-			{
+			
                         xOff = offset22;
                         yOff = 0.0;
                         // no idea why this is needed defaultOffset i mean ..
@@ -1054,9 +1114,9 @@
                         tipLineChart22.transition().duration(200)
 			.style("opacity", 0.7);
                         if ( xCoOrd >= (width22 + margin.left  ))
-                                hoverLine22.attr("x1", width22  ).attr("x2", width22 ).style("opacity", 0.3);
+                                hoverLine22.attr("x1", width22  ).attr("x2", width22 ).style("opacity", 0.5);
                         else
-                                hoverLine22.attr("x1", xCoOrd - marOffsetX ).attr("x2", xCoOrd - marOffsetX ).style("opacity", 0.3);
+                                hoverLine22.attr("x1", xCoOrd - marOffsetX ).attr("x2", xCoOrd - marOffsetX ).style("opacity", 0.5);
                         locDt = new Date ( xScaler22.invert(xCoOrd - marOffsetX) );
                         var formHtml = '';
                         formHtml +=  "<strong><p style="+"\"color:steelblue\""+">" +locDt.getDate()+" "+MnthRev[(locDt.getMonth())+1]+","+locDt.getFullYear() +" </p></strong>";
@@ -1069,7 +1129,6 @@
                                 .style("top", (yOff) + "px");
 
                         // Use event.pageX / event.pageY here
-                        }
 
                             var pathLength = benchMarkPath.node().getTotalLength();
                                 //console.log("bm length " + pathLength );
@@ -1099,21 +1158,11 @@
                                 circleBenchMark22.attr("opacity", 0.001);
                                 tipLineChart22.transition().duration(200)
 				.style("opacity",0);
-                                //hoverLine.style("opacity",0);
+                                hoverLine22.style("opacity",0);
                   });
                                   // Hover line.
 
 			
-		
-		//d3.tsv("data.tsv", function(error, data) {
-		//**********below is where you should be placing Benchmark data / arrays via static in django ********//
-		 
-		  //to init we call with 0 ..will need to change it after template mess
-		  
-		  //add hover line
-		  
-		  
-		  
 		  svg.append("g")
 			  .attr("class", "x axis")
 			  .attr("transform", "translate(0," + height22 + ")")
@@ -1204,45 +1253,119 @@
 	<svg class="chart23" id="OK"></svg>
 	<script>	
 		var margin = {top: 20, right: 30, bottom: 20, left: 30},
-		width = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
-                height = parseFloat( $("#lowerLCContainer").css("height") ) - margin.top - margin.bottom;	
+		width23 = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
+                height23 = parseFloat( $("#upperLCContainer").css("height") ) - margin.top - margin.bottom;
 		//width = 700 , height = 500 ;
+		window.offset23 =  screen.width - parseFloat( $("#upperLCContainer").css("width") ) - margin.left; 
+		window.offset23Y =  parseFloat( $("#upperHouse").css("height") ) + margin.top*2 ; 
 
 		var parsedt = d3.time.format("%d-%b-%y").parse;
 		//hopefully store dragslider values
 		window.marOffsetX = margin.right;
 		window.marOffsetY = margin.top;
 		
-		var xScaler = d3.time.scale()
-			.range([0, width]);
+		var xScaler23 = d3.time.scale()
+			.range([0, width23]);
 
-		var yScaler = d3.scale.linear()
-			.range([height, 0]);
+		var yScaler23 = d3.scale.linear()
+			.range([height23, 0]);
 
 		var xAxis = d3.svg.axis()
-			.scale(xScaler)
+			.scale(xScaler23)
 			.orient("bottom");
 
 		var yAxis = d3.svg.axis()
-			.scale(yScaler)
+			.scale(yScaler23)
 			.orient("left");
 
-			
 		var svg = d3.select(".chart23")
-			.attr("width", width + margin.left + margin.right)
-			.attr("height", height + margin.top + margin.bottom)
+			.attr("width", width23 + margin.left + margin.right)
+			.attr("height", height23 + margin.top + margin.bottom)
 			.append("g")
 			.attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
-			//.attr("transform", "translate(0," + margin.top + ")");
-		
-				  
-		  
-		  xScaler.domain(d3.extent(bm_Data_, function(d) { return d.dt; }));
-		  yScaler.domain(d3.extent(bm_Data_, function(d) { return d.closing; }));
-		  
+		 //add hover line
+                var hoverLineGroup = svg.append("g")
+                                  .attr("class", "hover-line");
+
+                window.hoverLine23 = hoverLineGroup
+                                .append("line")
+                                .attr("x1", 0).attr("x2", 0)
+                                .attr("y1", 0).attr("y2", height23)
+                                .style("opacity", 0.1);
+
+                  // Hover line.
+
+
+
+                d3.select(".chart23")
+			.on("mouseover", function() {
+
+                          console.log('mouseover bugs');
+
+                        })
+			.on("mousemove", function() {
+                          var xCoOrd = d3.mouse(this)[0];
+                          var yCoOrd = d3.mouse(this)[1];
+
+			if ( xCoOrd >= (width23 + margin.left +2 )) return 1;
+			if ( xCoOrd < margin.left) return 1;
+
+			console.log('DEUCHE '+xCoOrd+' '+yCoOrd);
+		  	locData = storeAreaData['.chart23'];
+		  	xScaler23.domain(d3.extent( locData.BM  , function(d) { return d.dt; }));
+			
+                        xOff = offset23;
+                        yOff = offset23Y;
+                        // no idea why this is needed defaultOffset i mean ..
+                        defaultOffset = 20;
+                        hoverWidth = parseFloat($('.d3-tip').css("width"));
+                        hoverHeight = parseFloat($('.d3-tip').css("height"));
+
+                        if ( (xCoOrd < width23/2) )
+                        {
+                                xOff = xOff + width23 - hoverWidth + 2*margin.left;
+				yOff += 2*hoverHeight;
+                        }
+			else if ( (xCoOrd >= width23/2) )
+                        {
+                                xOff = xOff + margin.left + margin.right;// + hoverWidth;
+				yOff += 2*hoverHeight;
+                        }
+
+
+			hoverLine23.style("opacity", 1);
+                        //circleBenchMark22.attr("opacity", 0.4);
+                        tipLineChart22.transition().duration(200)
+			.style("opacity", 0.7);
+                        if ( xCoOrd >= (width23 + margin.left  ))
+                                hoverLine23.attr("x1", width23  ).attr("x2", width23 ).style("opacity", 0.5);
+                        else
+                                hoverLine23.attr("x1", xCoOrd - marOffsetX ).attr("x2", xCoOrd - marOffsetX ).style("opacity", 0.5);
+                        locDt = new Date ( xScaler23.invert(xCoOrd - marOffsetX) );
+                        var formHtml = '';
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+">" +locDt.getDate()+" "+MnthRev[(locDt.getMonth())+1]+","+locDt.getFullYear() +" </p></strong>";
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+"> (Cumulative Returns) </p></strong>";
+                        formHtml += retDailyData( locDt ,".chart23" );
+
+
+                        tipLineChart22 .html( formHtml)
+                                .style("left", (xOff ) + "px")
+                                .style("top", (yOff) + "px");
+
+                        // Use event.pageX / event.pageY here
+
+                        })  .on("mouseout", function() {
+                                console.log('bill');
+                                tipLineChart22.transition().duration(200)
+				.style("opacity",0);
+                                hoverLine23.style("opacity",0);
+                  });
+                                  // Hover line.
+
+			
 		  svg.append("g")
 			  .attr("class", "x axis")
-			  .attr("transform", "translate(0," + height + ")")
+			  .attr("transform", "translate(0," + height23 + ")")
 			  .call(xAxis);
 
 		  svg.append("g")
@@ -1252,8 +1375,9 @@
 			  .attr("transform", "rotate(-90)")
 			  .attr("y", 2)
 			  .attr("dy", "1em")
-			  .style("text-anchor", "end")
-			  .text("Cumulative Change (%)");
+
+
+
 		//call the final rendering
 		
 		_reScaleBM_MF_axes( ".chart23" , "BULL2", 1); 	
@@ -1267,72 +1391,119 @@
 	<svg class="chart24" id="OK"></svg>
 	<script>	
 		var margin = {top: 20, right: 30, bottom: 20, left: 30},
-		width = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
-                height = parseFloat( $("#lowerLCContainer").css("height") ) - margin.top - margin.bottom;
+		width24 = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
+                height24 = parseFloat( $("#upperLCContainer").css("height") ) - margin.top - margin.bottom;
 		//width = 700 , height = 500 ;
+		window.offset24 =  screen.width - (parseFloat( $("#upperLCContainer").css("width") )/2) - margin.left; 
+		window.offset24Y =  parseFloat( $("#upperHouse").css("height") ) + margin.top*2 ; 
 
 		var parsedt = d3.time.format("%d-%b-%y").parse;
 		//hopefully store dragslider values
 		window.marOffsetX = margin.right;
 		window.marOffsetY = margin.top;
 		
-		var xScaler = d3.time.scale()
-			.range([0, width]);
+		var xScaler24 = d3.time.scale()
+			.range([0, width24]);
 
-		var yScaler = d3.scale.linear()
-			.range([height, 0]);
+		var yScaler24 = d3.scale.linear()
+			.range([height24, 0]);
 
 		var xAxis = d3.svg.axis()
-			.scale(xScaler)
+			.scale(xScaler24)
 			.orient("bottom");
 
 		var yAxis = d3.svg.axis()
-			.scale(yScaler)
+			.scale(yScaler24)
 			.orient("left");
 
-			
 		var svg = d3.select(".chart24")
-			.attr("width", width + margin.left + margin.right)
-			.attr("height", height + margin.top + margin.bottom)
+			.attr("width", width24 + margin.left + margin.right)
+			.attr("height", height24 + margin.top + margin.bottom)
 			.append("g")
 			.attr("transform", "translate(" + margin.left + "," + (margin.top) + ")");
-			//.attr("transform", "translate(0," + margin.top + ")");
-		
-		//svg.call( tipLineChart );
-		//d3.tsv("data.tsv", function(error, data) {
-		//**********below is where you should be placing Benchmark data / arrays via static in django ********//
-		 
-		  //to init we call with 0 ..will need to change it after template mess
-		  
-		  //add hover line
-		  
-		  // Hover line. 
-			var hoverLineGroup = svg.append("g")
-								.attr("class", "hover-line");
-			var hoverLine = hoverLineGroup
-				.append("line")
-					.attr("x1", 10).attr("x2", 10) 
-					.attr("y1", 0).attr("y2", height); 
-			// Hide hover line by default.
-			hoverLine.style("opacity", 0.1);
-			
-			//hoverLineGroup.call( tipLineChart );
-			
-			circleBenchMark = svg.append("circle")
-				.attr("opacity", 0.00001)
-				.attr({	r: dispCircleRadius, fill: 'SpringGreen' });
+		 //add hover line
+                var hoverLineGroup = svg.append("g")
+                                  .attr("class", "hover-line");
 
-			circleMF = svg.append("circle")
-				.attr("opacity", 0.00001)
-				.attr({	r: dispCircleRadius, fill: 'Turquoise' });	
-		  
-		  
-		  xScaler.domain(d3.extent(bm_Data_, function(d) { return d.dt; }));
-		  yScaler.domain(d3.extent(bm_Data_, function(d) { return d.closing; }));
-		  
+                window.hoverLine24 = hoverLineGroup
+                                .append("line")
+                                .attr("x1", 0).attr("x2", 0)
+                                .attr("y1", 0).attr("y2", height24)
+                                .style("opacity", 0.1);
+
+                  // Hover line.
+
+
+
+                d3.select(".chart24")
+			.on("mouseover", function() {
+
+                          console.log('mouseover bugs');
+
+                        })
+			.on("mousemove", function() {
+                          var xCoOrd = d3.mouse(this)[0];
+                          var yCoOrd = d3.mouse(this)[1];
+
+			if ( xCoOrd >= (width24 + margin.left +2 )) return 1;
+			if ( xCoOrd < margin.left) return 1;
+
+			console.log('DEUCHE '+xCoOrd+' '+yCoOrd);
+		  	locData = storeAreaData['.chart24'];
+		  	xScaler24.domain(d3.extent( locData.BM  , function(d) { return d.dt; }));
+			
+                        xOff = offset24;
+                        yOff = offset24Y ;
+                        // no idea why this is needed defaultOffset i mean ..
+                        defaultOffset = 20;
+                        hoverWidth = parseFloat($('.d3-tip').css("width"));
+                        hoverHeight = parseFloat($('.d3-tip').css("height"));
+
+                        if ( (xCoOrd < width24/2) )
+                        {
+                                xOff = xOff + width24 - hoverWidth + 2*margin.left;
+				yOff += 2*hoverHeight;
+                        }
+			else if ( (xCoOrd >= width24/2) )
+                        {
+                                xOff = xOff + margin.left + margin.right;// + hoverWidth;
+				yOff += 2*hoverHeight;
+                        }
+
+
+			hoverLine24.style("opacity", 1);
+                        //circleBenchMark22.attr("opacity", 0.4);
+                        tipLineChart22.transition().duration(200)
+			.style("opacity", 0.7);
+                        if ( xCoOrd >= (width24 + margin.left  ))
+                                hoverLine24.attr("x1", width24  ).attr("x2", width24 ).style("opacity", 0.5);
+                        else
+                                hoverLine24.attr("x1", xCoOrd - marOffsetX ).attr("x2", xCoOrd - marOffsetX ).style("opacity", 0.5);
+                        locDt = new Date ( xScaler24.invert(xCoOrd - marOffsetX) );
+                        var formHtml = '';
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+">" +locDt.getDate()+" "+MnthRev[(locDt.getMonth())+1]+","+locDt.getFullYear() +" </p></strong>";
+                        formHtml +=  "<strong><p style="+"\"color:steelblue\""+"> (Cumulative Returns) </p></strong>";
+                        formHtml += retDailyData( locDt ,".chart24" );
+
+
+                        tipLineChart22 .html( formHtml)
+                                .style("left", (xOff ) + "px")
+                                .style("top", (yOff) + "px");
+
+                        // Use event.pageX / event.pageY here
+
+                        })  .on("mouseout", function() {
+                                console.log('bill');
+                                tipLineChart22.transition().duration(200)
+				.style("opacity",0);
+                                hoverLine24.style("opacity",0);
+                  });
+                                  // Hover line.
+
+			
 		  svg.append("g")
 			  .attr("class", "x axis")
-			  .attr("transform", "translate(0," + height + ")")
+			  .attr("transform", "translate(0," + height24 + ")")
 			  .call(xAxis);
 
 		  svg.append("g")
@@ -1342,10 +1513,10 @@
 			  .attr("transform", "rotate(-90)")
 			  .attr("y", 2)
 			  .attr("dy", "1em")
-			  .style("text-anchor", "end")
-			  .text("Cumulative Change (%)");
-		//call the final ren++dering
 
+
+
+		//call the final rendering
 		
 		_reScaleBM_MF_axes(".chart24", "BULL3", 0); 	
 		
