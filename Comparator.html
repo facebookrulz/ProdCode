@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/jquery-ui.min.css' %}">
 <link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/component.css' %}">
 <link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/component-button.css' %}">
+<link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/modal-component.css' %}">
 <link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/normalize.css' %}">
 <link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/bearbull.css' %}">
 <script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/jquery.js' %}"></script>
@@ -40,6 +41,7 @@
 	window.bnch = 'CNX Nifty';
 	window.cmpAsset = "";
 	window.assetType = "index";
+	window.barWidth = 0.0;
 
         window.Mnth = {};
         window.MnthRev = {};
@@ -495,40 +497,6 @@
 			xScaler.domain([mindt, maxdt]);
 			yScaler.domain([minClose, maxClose]);
 			
-// the below code handles putting labels at the end of line charts
-				BMperiodRet = sliced_bm_Data_[sliced_bm_Data_.length-1]['cumuChg'];
-				AssetperiodRet = current_Data_[current_Data_.length-1]['cumuChg'];
-				if (phase == 'FLAT1' || phase == 'FLAT2'){
-					HVBMRet = HVBMRet + BMperiodRet;
-					HVAssetRet = HVAssetRet + AssetperiodRet;
-				}	
-				else if (phase == 'BULL2' || phase == 'BULL3'){
-                                        LVBMRet = LVBMRet + BMperiodRet;
-                                        LVAssetRet = LVAssetRet + AssetperiodRet;
-                                }
-
-				var t1 = yScaler(BMperiodRet);
-				var t2 = yScaler(AssetperiodRet);
-				if( t1 == 0 ) t1=t1+10;
-				if( t2 == 0 ) t2=t2+10;
-				if( t1 == LCCHeight ) t1 = LCCHeight - 10;
-				if( t2 == LCCHeight ) t2 = LCCHeight - 10;
-					
-				console.log('t1 t2 '+t1+' '+t2);
-
-				if ( t1 > t2 && Math.abs(t1-t2) < 50 ){
-					if(LCCHeight - t1 < 50){
-						t1 = LCCHeight - 50;
-					}
-						t2 = t1 - 50;
-				}	
-				else if( t1 < t2 && Math.abs(t1-t2) < 50 ){
-                                        if( t1 < 50){
-                                                t1 = 50;
-                                        }
-                                                t2 = t1 + 50;
-                                }
-
 			
 			svg.select(".y.axis").transition().duration(500).ease("sin-in-out")  // https://github.com/mbostock/d3/wiki/Transitions#wiki-d3_ease
                     .call(yAxis); 
@@ -543,7 +511,7 @@
 			  .attr("class", "line")
 			  .attr("d", line)
 			  //.attr("data-legend", bnch)
-			  .attr("stroke","#5DA5DA")
+			  .attr("stroke","#7D1935")
 			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
 
 		}
@@ -553,7 +521,7 @@
 			  .attr("class", "line")
 			  .attr("d", line)
 			  //.attr("data-legend", 'Returns - '+phase)
-			  .attr("stroke","#5DA5DA")
+			  .attr("stroke","#7D1935")
 			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
 		}
 		//zero line
@@ -565,14 +533,14 @@
 				  .attr("class", "line")
 				  .attr("d", line)
 				  //.attr("data-legend", cmpAsset)
-				  .attr("stroke","#F15854")
+				  .attr("stroke","steelblue")
 				  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
 			} else {
 				window.MFPath = svg.append("path")
 				  .datum(current_Data_)
 				  .attr("class", "line")
 				  .attr("d", line)
-				  .attr("stroke","#F15854")
+				  .attr("stroke","steelblue")
 				  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
 			
 			}		  
@@ -620,7 +588,7 @@
 					.attr("dy", ".35em")
 					.attr("font-size", "18px")
 					.attr("text-anchor", "start")
-					.style("fill", "#5DA5DA")
+					.style("fill", "#7D1935")
 					.style("font-weight", "bold")
 					.text(Math.floor(BMperiodRet * 100)+'%' );
 
@@ -629,7 +597,7 @@
 					.attr("dy", ".35em")
 					.attr("font-size", "18px")
 					.attr("text-anchor", "start")
-					.style("fill", "#F15854")
+					.style("fill", "steelblue")
 					.style("font-weight", "bold")
 					.text(Math.floor(AssetperiodRet * 100)+'%' );
 */			
@@ -640,16 +608,22 @@
 	function genHist( area, phase , container ){
 
 		var margin = {top: 20, right: 30, bottom: 20, left: 30};
-	
+		
 		
 		if(container == 0){
-                	width = parseFloat ($("#upperHistContainer").css("width"))/2 - 2*margin.left - 2*margin.right,
-                	height = parseFloat ($("#upperHistContainer").css("height")) - margin.top - margin.bottom;
+			if(barWidth == 0){	
+                		width = parseFloat ($("#upperHistContainer").css("width"))/2 - 2*margin.left - 2*margin.right,
+                		height = parseFloat ($("#upperHistContainer").css("height")) - margin.top - margin.bottom;
+				barWidth = width;
+			}else{
+				height = parseFloat ($("#upperHistContainer").css("height")) - margin.top - margin.bottom;
+				width = barWidth;
+			}
 		}
 		else
 		{
-                	width = parseFloat ($("#upperHistContainer").css("width"))/2 - 2*margin.left - 2*margin.right,
-                	height = parseFloat ($("#upperHistContainer").css("height")) - margin.top - margin.bottom;
+                	width = parseFloat ($("#lowerHistContainer").css("width"))/2 - 2*margin.left - 2*margin.right,
+                	height = parseFloat ($("#lowerHistContainer").css("height")) - margin.top - margin.bottom;
 		}
 		var xHist = d3.scale.ordinal()
 			.rangeRoundBands([width,0], 0.1);
@@ -868,6 +842,35 @@
 
 <!-- begin container for upper shite -->
 <div id="upperHouse">
+	<div id = "upperHdr">
+	   <div id = "gyanCont">	
+		<h2 id="GyanHdr">Risk Vs Returns <img src="{% static 'jquery-ui-1.11.4.custom/QS.png' %}" width="35" height="35" alt="" id="QM" data-modal="modal-1" class="md-trigger"></h2>
+	   </div>		 
+	<div id = "BMList">	
+		<label for="search"></label>
+		<input id="search" value="Choose Benchmark">
+	</div>
+	</div>
+
+	<div class="md-modal md-effect-1" id="modal-1">
+			<div class="md-content">
+				<h3>Risk Vs Returns</h3>
+				<div>
+					<ul>
+						<li>This page contains data from the last 2 high and low volatile phases and intends to compare the behavior of the chosen asset against a benchmark (NIFTY) on 2 major fronts- risk and returns, during periods of high volatility. The phases have been chosen by us based on our studies of the last 8 years of market data. The time periods can be ascertained by HOVERING over the charts.</li>
+						<li>Returns: The top 2 line charts compare the return charecteristics of the 2 assets during volatile periods. </li>
+						<li>Risk: The bottom 2 bar charts compare the risk charecteristics of the 2 assets during volatile periods. This is done by plotting the frequency of daily returns.The more spread out (distance between first and last bar) the data is, the more volatile it is.</li>
+						<li>So while choosing an asset please bear in mind that the returns should always be looked at from the perspective of the risk. At times a riskier asset can give you better returns or poorer returns. We also provide textual commentary, on every screen, to help you make this decision</li>
+					</ul>
+					<button class="md-close">Close me!</button>
+					<button class="md-close">Complicated! Tell me more</button>
+				</div>
+			</div>
+	</div>	
+	<div class="md-overlay"></div><!-- the overlay element -->
+	<!-- these 2 js will be added in the end because of modal shite not being dclared before -->
+	<script src="{% static 'jquery-ui-1.11.4.custom/tymp-modal1.js' %}"></script>
+	<script src="{% static 'jquery-ui-1.11.4.custom/tymp-modal2.js' %}"></script>
 
 	<div id = "upperLCContainer">
 	<div id = "MFvsBM">
@@ -879,7 +882,8 @@
 		width2 = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
                 height2 = parseFloat( $("#upperLCContainer").css("height") ) - margin.top - margin.bottom;
 		//width = 700 , height = 500 ;
-		window.offset2 =  margin.left; 
+
+		window.offset2 =  2*margin.left; 
 		window.LCCWidth = width2;
 		window.LCCHeight = height2;
 
@@ -1020,7 +1024,7 @@
 		width22 = parseFloat( $("#upperLCContainer").css("width") )/2 - 2*margin.left - 2*margin.right,
                 height22 = parseFloat( $("#upperLCContainer").css("height") ) - margin.top - margin.bottom;
 		//width = 700 , height = 500 ;
-		window.offset22 = parseFloat( $("#upperLCContainer").css("width") )/2 + margin.left; 
+		window.offset22 = parseFloat( $("#upperLCContainer").css("width") )/2 + 2*margin.left; 
 
 		var parsedt = d3.time.format("%d-%b-%y").parse;
 		//hopefully store dragslider values
@@ -1215,10 +1219,6 @@
 
 	<div id = "ListTextContainer">
 	
-	 <div id = "BMList">	
-		<label for="search">Another Benchmark ? </label>
-		<input id="search">
-	</div>
 
 
 
@@ -1585,7 +1585,9 @@
         			}
     			});
 		  }
-		});
+		}) .focus(function() {
+                                $( "#search" ).val('');
+                   });
 		
 	  });
 

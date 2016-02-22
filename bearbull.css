@@ -32,7 +32,30 @@
 		-webkit-transition: all 0.1s;
 	}
 
+	#GyanHdr{
+		text-align:left;
+		font-size:30px;
+		color: #ff6500;
+	}
 
+	button {
+	border: none;
+	padding: 0.6em 1.2em;
+	background: #c0392b;
+	color: #fff;
+	font-family: 'Lato', Calibri, Arial, sans-serif;
+	font-size: 1em;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	cursor: pointer;
+	display: inline-block;
+	margin: 3px 2px;
+	border-radius: 2px;
+	}
+
+	button:hover {
+	background: #A5281B;
+	}	
 
 
 	.action-button
@@ -231,13 +254,13 @@
 	
     .bar {
     	/*fill: #5DA5DA;*/
-    	fill: red;
-	opacity: 0.6;	
+    	fill: steelblue;
+	opacity: 0.8;	
     }
     .bar1 {
-    	fill: steelblue;
+    	fill: #7D1935;
     	/*fill: #F15854;*/
-	opacity: 0.6; 
+	opacity: 0.5; 
     }
 
 	#HDR1{
@@ -272,6 +295,13 @@
 		float: left;
 	 	height: 45%;
     		width:100%; 
+	}
+	#upperHdr{
+    	   padding:15px 20px 0px 20px;
+		float: left;
+	 	height: 10%;
+    		width:95%; 
+		left: 70px;
 	}
 	
 	#lowerHouse{
@@ -391,23 +421,31 @@
 	}
 
 	#BMList{
-	padding:15px 20px;
-	width: 100%;
-	height: 20%;
-	font-family: 'Josefin Slab';
+	float:right;
 	color: #3498db;
-       	font-size: 130%;
-	font-weight: normal;
+	width: 40%;
+	top: 10px;
+	font-weight: bold;
+        color: #ff6500;
 	}
 	
+	#gyanCont{
+	float:left;
+	color: #3498db;
+	width: 55%;
+	font-weight: normal;
+	}
+
 	#search{
 	font-family: 'Josefin Slab';
-       	font-size: 90%;
+	font-size:30px;
+	opacity: 0.5;
 	font-weight: normal;
+	float: right;
   	padding: 4px 0;
   	margin: 2px 0 0 0;
   	border-radius: 7px;
-  	border: 1px solid rgba(0,0,0,0.15);
+  	border: 2px solid black;
 	text-align: center;
 	}
 
