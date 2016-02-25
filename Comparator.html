@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/normalize.css' %}">
 <link rel="stylesheet" href="{% static 'jquery-ui-1.11.4.custom/bearbull.css' %}">
 <script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/jquery.js' %}"></script>
-<script src="{% static 'jquery-ui-1.11.4.custom/jquery-ui.min.js' %}"></script>
+<script src="{% static 'jquery-ui-1.11.4.custom/jquery-ui.js' %}"></script>
 <script src="{% static 'jquery-ui-1.11.4.custom/jquery.ui.slider.js' %}"></script>
 <script src="{% static 'jquery-ui-1.11.4.custom/d3.min.js' %}"></script>
 <script src="{% static 'jquery-ui-1.11.4.custom/external/jquery/d3-legend.js' %}"></script>
@@ -50,6 +50,10 @@
 	window.HVPhases = new Array("FLAT1","FLAT2");
 	window.LVPhases = new Array("BULL2","BULL3"); 
 	window.ajaxInd = 1;
+
+	window._BM_MF_FromDt_idx = -1;
+        window._BM_MF_ToDt_idx = -1;
+
 
         window.Mnth = {};
         window.MnthRev = {};
@@ -170,7 +174,7 @@
 	});
 	
 	// to be called initially
-	function initGlobalSetBM( passLL, passHist, passTS, passDist, passIQR){
+	function initGlobalSetBM( passLL, passHist, passTS, passDist, passIQR, passIdxMinus){
 			//FOR NOW use 0 index .. but we need to have a map
 			// for MF data and bm index
 			window.HVBMRet = 0.0;
@@ -187,6 +191,7 @@
 			//below 2 are python/django data
 			if( passLL === undefined && passHist === undefined && passTS === undefined && passDist === undefined){
 				window.tsList = {{ ll_list|safe  }};
+				window.tsIdxList = {{ ll_idxminus |safe  }};
 				window.histList = {{ hist|safe  }};
 				window.timeSeries = {{ ll|safe  }};
 				window.distSeries = {{ dist_ll|safe  }};
@@ -198,6 +203,7 @@
                                 window.timeSeries = passTS;
                                 window.distSeries = passDist;
 				window.IQRList = passIQR;
+				window.tsIdxList = passIdxMinus;
 			}
 
 		
@@ -208,6 +214,7 @@
 
 			console.log('BATMAN '+cmpAsset+tsList[0]['idx_name']+'-'+tsList[1]['idx_name']+'-'+histList.length+'-'+histList['CNX Smallcap-FLAT2\r']);	
 			window.timeSeriesDict = {};
+			window.tSDict = {};
 			window.timeSeriesZeroDict = {};
 			window.histMaster = {};	
 			initTS();
@@ -232,13 +239,16 @@
 	function refreshWithLatest( neo_data , ajaxOrLocal){
 		//1 indicates its being called via ajax return function
 		if( ajaxOrLocal == 1)
-			initGlobalSetBM(neo_data['ll_list'],neo_data['hist'],neo_data['ll'],neo_data['dist_ll'],neo_data['IQR']);
+			initGlobalSetBM(neo_data['ll_list'],neo_data['hist'],neo_data['ll'],neo_data['dist_ll'],neo_data['IQR'], neo_data['ll_idxminus']);
+
+		//d3.selectAll("path")
+                //        .remove();	
+		d3.selectAll(".bar").remove();
+		d3.selectAll(".bar1").remove();
 
 		_reScaleBM_MF_axes( ".chart2");
 		_reScaleBM_MF_axes( ".chart22");
 		
-		d3.selectAll(".bar").remove();
-		d3.selectAll(".bar1").remove();
 
 		//first numeric arg is uper /lower and the 2nd one indicates if its a screen refresh
 		genHist(".histFlat1", 0);
@@ -246,6 +256,9 @@
 		//call paint legend	
 		paintbnch();
 		paintcmp();
+
+		//call linechart 4th quad refresh
+		_drawBM_MF_axes ("#whlsLineChart", ".lastLine", tSDict, bnch , cmpAsset, "#dragslider-range", "#FromDt", "#ToDt" );
 		
 		genMsg();
 	
@@ -336,6 +349,7 @@
 		var phase = timeSeries[ 0 ].Phase;
    		var idx = timeSeries[ 0 ].idx_name;
    		var _per_chg_ = [];
+   		var _per_chg_for_LC = [];
 		var cumSum = 0.0;
 
    		for (tsCtr = 1; tsCtr < timeSeries.length; tsCtr++){
@@ -351,14 +365,48 @@
                 			_per_chg_ = [];
 					cumSum = 0.0;	
        				 }	
+					
         		singleObj['dt'] = storeDt;
         		singleObj['cumuChg'] = cumSum;
+        		singleObj['daily'] = storeChg;
 			singleObj['zero'] = 0.0;
         		_per_chg_.push(singleObj);
    		}
 		//fr the lst pair combo simply insert because it will come out when the tsCtr index reaches length
 		timeSeriesDict[idx+'-'+phase] = _per_chg_;
+
+		cumSum = 0.0;
+   		var idx = tsIdxList[0].idx_name;
+   		for (tsCtr = 1; tsCtr < tsIdxList.length; tsCtr++){
+        		var singleObj = {};
+			var storeDt = ( tsIdxList[ tsCtr ].idx_dt );
+			var storeChg = ( tsIdxList[ tsCtr ].cumChg );
+			cumSum = cumSum + storeChg;
+				//time series for the line chart bottom right
+        			if( ( tsIdxList[ tsCtr ].idx_name != idx) && _per_chg_for_LC.length > 0 ){
+						tSDict[idx] = _per_chg_for_LC;
+                				idx = tsIdxList[ tsCtr ].idx_name;
+						_per_chg_for_LC = [];
+						cumSum = 0.0;
+				}
+        		singleObj['dt'] = storeDt;
+        		singleObj['cumuChg'] = cumSum;
+        		singleObj['daily'] = storeChg;
+			_per_chg_for_LC.push(singleObj);
+   		}
+		tSDict[idx] = _per_chg_for_LC;
+
 	console.log('in initTS '+Object.keys(timeSeriesDict));
+                if(_BM_MF_FromDt_idx == -1 && _BM_MF_ToDt_idx == -1){
+				if ( tSDict[bnch].length < tSDict[cmpAsset].length){
+                                	_BM_MF_FromDt_idx = Math.round( tSDict[bnch].length*(0.5) );
+                                	_BM_MF_ToDt_idx = tSDict[bnch].length - 1;
+				}else{
+                                	_BM_MF_FromDt_idx = Math.round( tSDict[cmpAsset].length*(0.5) );
+                                	_BM_MF_ToDt_idx = tSDict[cmpAsset].length - 1;
+				}
+                }
+
 
 	}
 
@@ -483,13 +531,11 @@
 			sliced_bm_Data_.forEach(function(d) {
 					d.dt = new Date(d.dt);
 					d.cumuChg = +d.cumuChg;
-					d.zero = +d.zero;
 				  });
 			
 			current_Data_.forEach(function(d) {
 					d.dt = new Date(d.dt);
 					d.cumuChg = +d.cumuChg;
-					d.zero = +d.zero;
 				  });
 
 			//store the data structures for recall in hovers
@@ -541,7 +587,8 @@
 			.innerTickSize(-LCCWidth)
                         .outerTickSize(0)
 			.tickFormat(d3.format("%"));
-			
+
+
 			var line = d3.svg.line()
 						.x(function(d) { return xScaler((d.dt)); })
 						.y(function(d) { return yScaler(d.cumuChg); });
@@ -555,6 +602,7 @@
 			//clear existing
 			svg.selectAll("path")
 			.remove();
+
 			
 			//svg.selectAll("text").remove();
 			//rescale if necessary
@@ -568,7 +616,6 @@
 		    svg.select(".x.axis").transition().duration(500).ease("sin-in-out")  // https://github.com/mbostock/d3/wiki/Transitions#wiki-d3_ease
                     .call(xAxis); 	
 		
-			
 			//add benchmark
 		if( showLegend == 1){
 			window.benchMarkPath =	svg.append("path")
@@ -577,7 +624,7 @@
 			  .attr("d", line)
 			  //.attr("data-legend", bnch)
 			  .attr("stroke",assetColor)
-			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
+			  .attr("transform", "translate("+margin.right+","+margin.top+")")
 
 		}
 		else{
@@ -587,7 +634,7 @@
 			  .attr("d", line)
 			  //.attr("data-legend", 'Returns - '+phase)
 			  .attr("stroke",assetColor)
-			  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
+			  .attr("transform", "translate("+margin.right+","+margin.top+")")
 		}
 		//zero line
 	  
@@ -599,46 +646,32 @@
 				  .attr("d", line)
 				  //.attr("data-legend", cmpAsset)
 				  .attr("stroke",cmpassetColor)
-				  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
+			  .attr("transform", "translate("+margin.right+","+margin.top+")")
 			} else {
 				window.MFPath = svg.append("path")
 				  .datum(current_Data_)
 				  .attr("class", "line")
 				  .attr("d", line)
 				  .attr("stroke",cmpassetColor)
-				  .attr("transform", "translate("+marOffsetX+","+marOffsetY+")")
+			  .attr("transform", "translate("+margin.right+","+margin.top+")")
 			
 			}		  
 			
-
-
-			svg.selectAll(".legend").remove();
-			//now set to and from dt calendars and also dragslider positions
-			
-			if ( _BM_MF_FromDt_idx < _BM_MF_ToDt_idx) {
-				$( "#FromDt" ).datepicker( "setdt",  bm_Data_[_BM_MF_FromDt_idx].dt );
-				$( "#ToDt" ).datepicker( "setdt",  bm_Data_[_BM_MF_ToDt_idx].dt );	
-				$( "#dragslider-range" ).dragslider( "values" , [ _BM_MF_FromDt_idx , _BM_MF_ToDt_idx] )	
-			}
-			else{
-				//better error handling ..for now just alert
-				alert("sorry from dt's always going to be earlier than To dt ..never went to school ..sucker ?");
-			}	
 
     }
 	
 
 	function genHist( area, phase , container ){
 
-		var margin = {top: 20, right: 30, bottom: 20, left: 30};
+		var margin = {top: 5, right: 5, bottom: 20, left: 5};
 		
 		
 		if(barWidth == 0){	
-               		width = parseFloat ($("#upperHistContainer").css("width"))/2 - 2*margin.left - 2*margin.right,
-               		height = parseFloat ($("#upperHistContainer").css("height")) - margin.top - margin.bottom;
+               		width = parseFloat ($("#MFHist").css("width"))/2 - 2*margin.left - 2*margin.right,
+               		height = parseFloat ($("#MFHist").css("height")) - margin.top - margin.bottom;
 			barWidth = width;
 		}else{
-			height = parseFloat ($("#upperHistContainer").css("height")) - margin.top - margin.bottom;
+			height = parseFloat ($("#MFHist").css("height")) - margin.top - margin.bottom;
 			width = barWidth;
 		}
 	
@@ -663,7 +696,7 @@
 			console.log('DOGGIE '+test+' '+bnchData[test].value);
 		}
 
-                width = parseFloat ($("#upperHistContainer").css("width")) - 2*margin.left - 2*margin.right -20;
+                width = parseFloat ($("#MFHist").css("width")) - 2*margin.left - 2*margin.right;
 
 		var xHist = d3.scale.ordinal()
 			.rangeRoundBands([width,0], 0.1);
@@ -726,13 +759,11 @@
 			  .data(bnchData)
 			.enter().append("rect")
 			  .attr("class", "bar")
-			  .attr("x", function(d) { return xHist(d.name)+7; })
+			  .attr("x", function(d) { return xHist(d.name)+2; })
 			  .attr("y", function(d) { return yHist(d.value/normbnch); })
 			  .attr("height", function(d) { return height - yHist(d.value/normbnch); })
-			  .attr("width", xHist.rangeBand()-15)
-			  .style("fill", assetColor)	
-			  .on('click', function(d,i){  alert( d.value/normbnch ) ; })
-			  .on('dblclick', function(d,i){  alert( d.name ) ; });
+			  .attr("width", xHist.rangeBand()-5)
+			  .style("fill", assetColor);	
 
 		chart.selectAll(area)
 			  .data(assData)
@@ -742,10 +773,8 @@
 			  .attr("y", function(d) { return yHist(d.value/normass); })
 			  .attr("height", function(d) { return height - yHist(d.value/normass); })
 			  .attr("width", xHist.rangeBand())
-			  .style("fill", cmpassetColor)	
+			  .style("fill", cmpassetColor);	
 			  //.attr("data-legend", "Volatility - "+phase)
-			  .on('click', function(d,i){  alert( d.value/normbnch ); })
-			  .on('dblclick', function(d,i){  alert( d.name ); });
 
                 d3.select(area)
                         .on("mouseover", function() {
@@ -793,7 +822,7 @@
                         hoverHeight = parseFloat($('.d3-tip').css("height"));
 
                         {
-                                xOff += hoverWidth + 2*margin.left;
+                                xOff += hoverWidth - 4*margin.left ;
                                 yOff += 3*hoverHeight;
                         }
 
@@ -837,6 +866,7 @@
 	}
 </script>
 
+
 	<div id = "HDR1">
                <p id="HeaderButton">
 		 <button class="btn btn-7 btn-7a ">Fund Of Funds</button>
@@ -857,7 +887,53 @@
 <div id="upperHouse">
 	<div id = "upperHdr">
 	   <div id = "TitleCont">	
-		<h2 id="GyanHdr">Risk Vs Returns <img src="{% static 'jquery-ui-1.11.4.custom/QS.png' %}" width="35" height="35" alt="" id="QM" data-modal="modal-1" class="md-trigger"></h2>
+		<h2 id="GyanHdr">Risk Vs Returns <img src="{% static 'jquery-ui-1.11.4.custom/QS.png' %}" width="30" height="30" alt="" id="QM" data-modal="modal-1" class="md-trigger"></h2>
+	   </div>
+	   <div id = "phaseButton">	
+			<button class="md-close" id="lvButton" onclick="toggleSwitch('LV');" >Switch To Low Volatility</button>
+			<button class="md-close" id="hvButton"  onclick="toggleSwitch('HV');">High Volatility</button>
+
+			<script>
+				initGlobalSetBM();	
+				//hex to rgb from SO http://stackoverflow.com/questions/1740700/how-to-get-hex-color-value-rather-than-rgb-value
+				var hexDigits = new Array
+        					("0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f");
+				function rgb2hex(rgb) {
+ 					rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+ 					return "#" + hex(rgb[1]) + hex(rgb[2]) + hex(rgb[3]);
+				}
+
+				function hex(x) {
+  					return isNaN(x) ? "00" : hexDigits[(x - x % 16) / 16] + hexDigits[x % 16];
+ 				}
+
+				function toggleSwitch( comingFrom ){
+					if( comingFrom == 'HV' && rgb2hex( $("#hvButton").css("background-color") ) != '#7b9095' ){
+					}
+					else if( comingFrom == 'HV' && rgb2hex( $("#hvButton").css("background-color") ) == '#7b9095' ){
+						$("#hvButton").html('High Volatility');
+						$("#lvButton").html('Switch To Low Volatility');
+						$("#hvButton").css("background","#A8CD1B" );
+						$("#lvButton").css("background","#7b9095" );
+						currPhase = 'HV';
+						//first arg is supposed to be ajax return, but given we are calling w/o that dont pass arg
+						//0 doubly indicates that
+						refreshWithLatest(0);
+					}
+					else if( comingFrom == 'LV' && rgb2hex ($("#lvButton").css("background-color")) != '#7b9095' ){
+					}
+					else if( comingFrom == 'LV' && rgb2hex ( $("#lvButton").css("background-color") ) == '#7b9095' ){
+						$("#lvButton").html('Low Volatility');
+						$("#hvButton").html('Switch To High Volatility');
+						$("#lvButton").css("background","#A8CD1B" );
+						$("#hvButton").css("background","#7b9095" );
+						currPhase = 'LV';
+						refreshWithLatest(0);
+					}
+				//TEST --------------
+				}
+			</script>
+			
 	   </div>
 <!--			
 	<div id= "legendado">
@@ -914,52 +990,6 @@
 	
 <!-- the below div is going to be used for the legend container -->
 	<div id="upperLegend">
-	   <div id = "phaseButton">	
-			<button class="md-close" id="lvButton" onclick="toggleSwitch('LV');" >Switch To Low Volatility</button>
-			<button class="md-close" id="hvButton"  onclick="toggleSwitch('HV');">High Volatility</button>
-
-			<script>
-				initGlobalSetBM();	
-				//hex to rgb from SO http://stackoverflow.com/questions/1740700/how-to-get-hex-color-value-rather-than-rgb-value
-				var hexDigits = new Array
-        					("0","1","2","3","4","5","6","7","8","9","a","b","c","d","e","f");
-				function rgb2hex(rgb) {
- 					rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
- 					return "#" + hex(rgb[1]) + hex(rgb[2]) + hex(rgb[3]);
-				}
-
-				function hex(x) {
-  					return isNaN(x) ? "00" : hexDigits[(x - x % 16) / 16] + hexDigits[x % 16];
- 				}
-
-				function toggleSwitch( comingFrom ){
-					if( comingFrom == 'HV' && rgb2hex( $("#hvButton").css("background-color") ) != '#7b9095' ){
-					}
-					else if( comingFrom == 'HV' && rgb2hex( $("#hvButton").css("background-color") ) == '#7b9095' ){
-						$("#hvButton").html('High Volatility');
-						$("#lvButton").html('Switch To Low Volatility');
-						$("#hvButton").css("background","#A8CD1B" );
-						$("#lvButton").css("background","#7b9095" );
-						currPhase = 'HV';
-						//first arg is supposed to be ajax return, but given we are calling w/o that dont pass arg
-						//0 doubly indicates that
-						refreshWithLatest(0);
-					}
-					else if( comingFrom == 'LV' && rgb2hex ($("#lvButton").css("background-color")) != '#7b9095' ){
-					}
-					else if( comingFrom == 'LV' && rgb2hex ( $("#lvButton").css("background-color") ) == '#7b9095' ){
-						$("#lvButton").html('Low Volatility');
-						$("#hvButton").html('Switch To High Volatility');
-						$("#lvButton").css("background","#A8CD1B" );
-						$("#hvButton").css("background","#7b9095" );
-						currPhase = 'LV';
-						refreshWithLatest(0);
-					}
-				//TEST --------------
-				}
-			</script>
-			
-	   </div>
 		<div id="asset1">
 		    <svg class="bnchLegend" id="OK"></svg>	
 			<script>
@@ -968,10 +998,10 @@
 				paintbnch();				
 
 				function paintbnch(){
- 					var margin = {top: 5, right: 10, bottom: 5, left: 10},
+ 					var margin = {top: 5, right: 5, bottom: 5, left: 5},
                 			width = parseFloat( $("#asset1").css("width") ) - margin.left - margin.right,
                 			height = parseFloat( $("#asset1").css("height") ) - margin.top - margin.bottom;
-
+				
 					d3.select(".bnchLegend").selectAll("*").remove();			
 
 					var svg = d3.select(".bnchLegend")
@@ -990,21 +1020,23 @@
 						
 					svg.append("text")
 						.attr("x", 2*margin.left )
-                                		.attr("y", 6*margin.top )
+                                		.attr("y", 4*margin.top )
 						.text( bnch+ret )
 						.attr("font-family", "'Open Sans', arial")
-                 				.attr("font-size", "20px")
+                 				//.attr("font-size", "20px")
+                 				.attr("font-size", "15px")
                  				.style("fill", "white")
-                 				.style("opacity", 0.8);
+                 				.style("opacity", 1);
 					
 					svg.append("text")
 						.attr("x", 2*margin.left )
-                                		.attr("y", 4*margin.top+30 )
+                                		.attr("y", 7*margin.top )
 						.text( 'Average Returns for Phase ')
 						.attr("font-family", "'Open Sans', arial")
-                 				.attr("font-size", "15px")
+                 				//.attr("font-size", "15px")
+                 				.attr("font-size", "12px")
                  				.style("fill", "white")
-                 				.style("opacity", 0.8);
+                 				.style("opacity", 1);
 				}
 			</script>
 		</div>
@@ -1014,7 +1046,7 @@
 				$("#asset2").css("background", cmpassetColor);	
 				paintcmp();
 				function paintcmp(){
- 					var margin = {top: 5, right: 10, bottom: 5, left: 10},
+ 					var margin = {top: 5, right: 5, bottom: 5, left: 5},
                 			width = parseFloat( $("#asset2").css("width") ) - margin.left - margin.right,
                 			height = parseFloat( $("#asset2").css("height") ) - margin.top - margin.bottom;
 
@@ -1036,26 +1068,31 @@
 
 					svg.append("text")
 						.attr("x", 2*margin.left )
-                                		.attr("y", 6*margin.top )
+                                		.attr("y", 4*margin.top )
 						.text( cmpAsset+ret )
 						.attr("font-family", "'Open Sans', arial")
-                 				.attr("font-size", "20px")
+                 				//.attr("font-size", "20px")
+                 				.attr("font-size", "16px")
                  				.style("fill", "white")
-                 				.style("opacity", 0.8);
+                 				.style("opacity", 1);
 					
 					svg.append("text")
 						.attr("x", 2*margin.left )
-                                		.attr("y", 4*margin.top+30 )
+                                		.attr("y", 7*margin.top )
 						.text( 'Average Returns for Phase' )
 						.attr("font-family", "'Open Sans', arial")
-                 				.attr("font-size", "15px")
+                 				//.attr("font-size", "15px")
+                 				.attr("font-size", "12px")
                  				.style("fill", "white")
-                 				.style("opacity", 0.8);
+                 				.style("opacity", 1);
 				}
 			</script>
 		</div>
+	<div id = "BMList">	
+		<label for="search"></label>
+		<input id="search" value="Change Benchmark">
 	</div>
-	
+	</div>
 	<div class="md-modal md-effect-1" id="modal-1">
 			<div class="md-content">
 				<h3>Risk Vs Returns</h3>
@@ -1150,12 +1187,12 @@
                         if ( (xCoOrd < width2/2) )
                         {
                                 xOff = xOff + width2 - hoverWidth + 2*margin.left;
-				yOff = 3*hoverHeight;
+				yOff = 2*hoverHeight;
                         }
 			else if ( (xCoOrd >= width2/2) )
                         {
                                 xOff = xOff + margin.left + margin.right;// + hoverWidth;
-				yOff = 3*hoverHeight;
+				yOff = 2*hoverHeight;
                         }
 
 
@@ -1188,7 +1225,6 @@
                   });
                                   // Hover line.
 
-			
 		  svg.append("g")
 			  .attr("class", "x axis")
 			  .attr("transform", "translate(0," + height2 + ")")
@@ -1201,7 +1237,6 @@
 			  .attr("transform", "rotate(-90)")
 			  .attr("y", 2)
 			  .attr("dy", "1em")
-
 
 
 		//call the final rendering
@@ -1302,12 +1337,12 @@
                         if ( (xCoOrd < width22/2) )
                         {
                                 xOff = xOff + width22 - hoverWidth + 2*margin.left;
-				yOff = 3*hoverHeight;
+				yOff = 2*hoverHeight;
                         }
 			else if ( (xCoOrd >= width22/2) )
                         {
                                 xOff = xOff + margin.left + margin.right;// + hoverWidth;
-				yOff = 3*hoverHeight;
+				yOff = 2*hoverHeight;
                         }
 
 
@@ -1389,17 +1424,73 @@
 
 	</div>
 
+
+
+<!-- end container for upper shite -->
+</div>
+
+<div id = "ListTextContainer">
+	
+	<div id = "MFvsBMText">
+	<div id = "info1">
+			<p id="DetailedHeader1" > PlaceHolder </p>
+	</div>
+	<section id="grid" class="grid clearfix">
+<!--		<a href="#" data-path-hover="m 180,34.57627 -180,0 L 0,0 180,0 z"> -->
+		
+<!--		  <svg viewBox="0 0 0 320" preserveAspectRatio="none"><path d="M 180,300 0,300 0,0 180,0 z"/></svg> -->
+			<figcaption>
+				<h2 id="Header1">PlaceHolder</h2>
+				<p id="Header1-Para">PlaceHolder</p>
+                 	</figcaption>
+		
+		</a>	
+	</section>
+    </div>
+
+</div>
+
+<div id = "lowerHouse">
+
 	<div id = "upperHistContainer">
 	   <div id = "HistTitleCont">	
-		<h2 id="HistHdr">Returns Distribution <img src="{% static 'jquery-ui-1.11.4.custom/QS.png' %}" width="35" height="35" alt="" id="QM" data-modal="modal-2" class="md-trigger"></h2>
+		<h2 id="HistHdr">Returns Distribution <img src="{% static 'jquery-ui-1.11.4.custom/QS.png' %}" width="30" height="30" alt="" id="QM" data-modal="modal-2" class="md-trigger"></h2>
 	   </div>
-		<div id = "MFHist">
-		<svg class="histFlat1"></svg>
-        	<script>
-			genHist(".histFlat1", "HV", 0);
-		</script>	
+	   <div id = "sliderAndDt">
+	        <div id="dragslider-range" class="vik"></div>
+		<div id ="TopCont">
+                                <input type="text" readOnly='true' id="FromDt"><input type="text" readOnly='true' id="ToDt" >
 		</div>
-	</div>
+
+		<script>
+                	window.DragSliderWidth = parseFloat( $("#dragslider-range").css("width") );
+                	var margin = {top: 20, right: 30, bottom: 20, left: 30};
+                	DragSliderWidth = DragSliderWidth - margin.left - margin.right;
+                	//now set the width for dragslider
+		</script>
+
+	   </div>		
+	
+		<div id = "lowerCrap">	
+	
+			<div id = "MFHist">
+			<svg class="histFlat1"></svg>
+        		<script>
+				genHist(".histFlat1", "HV", 0);
+			</script>	
+			</div>
+		
+			<div id = "whlsLineChart">
+			<svg class="lastLine"></svg>
+				<script src="{% static 'jquery-ui-1.11.4.custom/GraphWithBling.js' %}"></script>
+				<script>
+					// signature -- _drawBM_MF_axes ("#whlsLineChart", ".lastLine", tSDict, bnch , cmpAsset , slider, fromDt, toDt );
+					_drawBM_MF_axes ("#whlsLineChart", ".lastLine", tSDict, bnch , cmpAsset, "#dragslider-range", "#FromDt", "#ToDt" );
+				</script>
+			</div>
+		</div>
+
+	</div> <!-- this end is for upperHist -->
 <!-- overlay for histogram explanation -->
 	<div class="md-modal md-effect-1" id="modal-2">
 			<div class="md-content">
@@ -1420,39 +1511,7 @@
 	<script src="{% static 'jquery-ui-1.11.4.custom/tymp-modal1.js' %}"></script>
 	<script src="{% static 'jquery-ui-1.11.4.custom/tymp-modal2.js' %}"></script>
 
-
-<!-- end container for upper shite -->
 </div>
-
-	<div id = "ListTextContainer">
-	
-
-
-
-	<div id = "MFvsBMText">
-	<div id = "BMList">	
-		<label for="search"></label>
-		<input id="search" value="Change Benchmark">
-	</div>
-	<div id = "info1">
-			<p id="DetailedHeader1" > PlaceHolder </p>
-	</div>
-	
-	<section id="grid" class="grid clearfix">
-		<a href="#" data-path-hover="m 180,34.57627 -180,0 L 0,0 180,0 z">
-		
-		  <!--<svg viewBox="0 0 0 320" preserveAspectRatio="none"><path d="M 180,300 0,300 0,0 180,0 z"/></svg>-->
-		  <svg viewBox="0 0 0 320" preserveAspectRatio="none"><path d="M 180,300 0,300 0,0 180,0 z"/></svg>
-			<figcaption>
-				<h2 id="Header1">PlaceHolder</h2>
-				<p id="Header1-Para">PlaceHolder</p>
-                 	</figcaption>
-		
-		</a>	
-	</section>
-        </div>
-
-	</div>
 
 
 <!-- lower shite -->
@@ -1879,6 +1938,9 @@
         // Use event.pageX / event.pageY here
     				      }
 		     })();
+		
+
+			
 	</script>
-	
+
 </body>

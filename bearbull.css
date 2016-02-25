@@ -23,7 +23,7 @@
 	}
 
 	#GyanHdr{
-		font-size:30px;
+		font-size:25px;
 		color: #ff6500;
 		font-weight: bold;
 	}
@@ -35,10 +35,9 @@
 	}
 
 	#Header1{
-		font-size:25px;
+		font-size:20px;
 		font-weight: bold;
 		color: #ff6500;
-		text-transform: lowercase;
 		font-family: 'Open Sans', arial;
 	}
 	#Header1-Para{
@@ -56,7 +55,7 @@
 
 	button {
 	border: none;
-	padding: 1em 1.2em;
+	padding: 0.5em 1em;
 	background: #c0392b;
 	color: #fff;
 	font-family: 'Lato', Calibri, Arial, sans-serif;
@@ -187,13 +186,20 @@
     	/*fill: #F15854;*/
 	opacity: 0.5; 
     }
+	
+	#menu-container {
+    		position: absolute;
+    		white-space: nowrap;
+    		overflow: hidden;
+
+	}
 
 	#hvButton{
-		float:right;background-color: #A8CD1B; font-size: 20px; font-family:'Open sans', arial;  	
+		float:right;background-color: #A8CD1B; font-size: 15px; font-family:'Open sans', arial; margin-top:3%;  	
 	}
 
 	#lvButton{
-		margin-right:-2.5%; float:right;background-color: #7b9095; font-size: 20px;font-family:'Open sans', arial;	
+		margin-right:-2.5%; float:right;background-color: #7b9095; font-size: 15px;font-family:'Open sans', arial; margin-top:3%;	
 	}
 
 	#HDR1{
@@ -212,60 +218,71 @@
 	#upperHouse{
     	   padding:15px 20px 0px 20px;
 		float: left;
-	 	height: 70%;
+	 	height: 45%;
     		width:65%; 
 	}
 	
 	#upperLCContainer{
     	   padding:15px 20px 0px 20px;
 		float: left;
-	 	height: 45%;
+	 	height: 70%;
     		width:100%; 
 	}
 	#upperHistContainer{
     	   padding:15px 20px 0px 20px;
 		float: left;
-	 	height: 45%;
+	 	height: 70%;
+		left:40px;
     		width:100%; 
+	}
+	#whlsLineChart{
+    	   padding:15px 20px 0px 20px;
+		float: left;
+	 	height: 105%;
+		left:1%;
+		top:3%;
+    		width:55%; 
+		box-shadow: 5px 5px 5px #888888;
 	}
 	#upperHdr{
     	   padding:0px 20px 0px 20px;
 		float: left;
-	 	height: 10%;
-    		width:60%; 
-		left: 70px;
+	 	height: 15%;
+    		width:100%; 
+		left: 40px;
+	/*	box-shadow: 5px 5px 5px #888888;*/
 	}
 	
 	#upperLegend{
     	   	padding:0px 20px 0px 20px;
 		float: left;
-	 	height: 10%;
-    		width:94%; 
-		left: 70px;
+	 	height: 15%;
+    		width:100%; 
+		left: 40px;
+	/*	box-shadow: 5px 5px 5px #888888;*/
 	}
 
 	#asset1{
 		width: 25%;
-	 	height: 100%;
 		float:left;
+	 	height: 100%;
 		text-align: center;
 		border-radius: 2px;
 	}	
 
 	#asset2{
-		width: 25%;
-	 	height: 100%;
+		width: 30%;
 		float:left;
+	 	height: 100%;
 		text-align: center;
 		border-radius: 2px;
 	}
 	
 	#lowerHouse{
     	   padding:15px 20px 0px 20px;
-		float: right;
-	 	height: 70%;
-		top: 40px;
-    		width:65%; 
+		float: left;
+	 	height: 45%;
+    		width:100%;
 	}
 
 	#lowerLCContainer{
@@ -322,18 +339,15 @@
 	left: 40px;
 	right: 40px;
 	float:left;
-	box-shadow: 10px 10px 5px #888888;	
+	box-shadow: 5px 5px 5px #888888;	
 	}
 
         #MFHist{
     padding:15px 20px;
-        left: 40px;
-        right: 40px;
-	top: 40px;
         float:left;
-	box-shadow: 10px 10px 5px #888888;
-        /*height:50%;*/
-    /*width:35%;*/
+	box-shadow: 5px 5px 5px #888888;
+        height:100%;
+    	width:35%;
         /*border-radius: 25px;*/
     /*border: 2px solid #73AD21;*/
 
@@ -345,7 +359,7 @@
         left: 40px;
         right: 40px;
         float:left;
-	box-shadow: 10px 10px 5px #888888;
+	box-shadow: 5px 5px 5px #888888;
         /*height:50%;*/
     /*width:35%;*/
         /*border-radius: 25px;*/
@@ -358,7 +372,7 @@
         left: 40px;
         right: 40px;
 	top: 40px;
-	box-shadow: 10px 10px 5px #888888;
+	box-shadow: 5px 5px 5px #888888;
         /*height:50%;*/
     /*width:35%;*/
         /*border-radius: 25px;*/
@@ -370,35 +384,55 @@
 	
 		padding:15px 20px;
         	float:left;
-		margin-left: 50px;
-        	height: 70%;
+		margin-left: 20px;
+        	height: 35%;
         	width: 25%;
 	}
 
 	#BMList{
-	float:right;
+	float:left;
 	color: #3498db;
-	width: 40%;
-	height: 10%;
-	top: -40px;
+	width: 25%;
+	height: 15%;
+	margin-left:10%;
 	font-weight: bold;
         color: #ff6500;
 	}
 
 	#TitleCont{
-	float: right;
+	float: left;
+	width: 50%;
 	}	
 	
 	#HistTitleCont{
 	float:left;
 	color: #3498db;
 	font-weight: normal;
-	top: 40px;
-	left: 70px;
+	top: 10%;
+	width:35%;
+	height: 10%;	
+	}
+
+	#sliderAndDt{
+	float:right;
+	color: #3498db;
+	font-weight: normal;
+	top: 10%;
+	width:60%;
+	height: 10%;	
+	}
+
+	#lowerCrap{
+	float:left;
+	color: #3498db;
+	font-weight: normal;
+	top: 20%;
+	height: 90%;	
+	width: 100%;
 	}
 
 	#phaseButton{
-	float:right;
+	float:left;
 	width: 45%;
 	font-weight: normal;
 	}
@@ -407,7 +441,7 @@
 	float:right;
 	color: #3498db;
 	width: 25%;
-	height : 100%;
+	height : 15%;
   	border: 2px solid rgba(0,0,0,0.5);
   	border-radius: 7px;
 	font-weight: normal;
@@ -415,11 +449,11 @@
 
 	#search{
 	font-family: 'Open Sans', arial;	
-	font-size:30px;
-	opacity: 0.5;
+	font-size:20px;
+	opacity: 0.7;
 	font-weight: normal;
 	float: right;
-  	padding: 4px 0;
+  	padding: 5%;
   	margin: 2px 0 0 0;
   	border-radius: 7px;
   	border: 2px solid black;
@@ -430,7 +464,7 @@
 	padding:5px 20px;
         float: left;
 	width: 100%;
-	height: 80%;
+	height: 35%;
 	top: 100px;
 	left: -50px;	
 	}
@@ -601,6 +635,48 @@
         transform: translate3d(0,0,0);
 }
 
+        #dragslider-range{
+        display: inline-block;
+        float:left;
+        height:100%;
+        width:50%;
+        margin-top: 2%;
+        background:#37474f;
+        /*padding:15px 20px 15px 30px;*/
+        }
+
+        #TopCont{
+        margin-top: 2%;
+        margin-left: 4.5%;
+        float: left ;
+        height:100%;
+    width  :40%;
+        }
+
+	#FromDt{
+                font-size:16px;
+                text-align: center;
+                background: #37474f;
+                color: #fff;
+                width:6.5em;
+                float:left;
+                /*border: 2px solid #3f51b5;
+                text-decoration: underline;
+                padding : 3px;  font-size: 10px; text-align: center;*/
+        }
+
+        #ToDt{
+                font-size:16px;
+                width:6.5em;
+                text-align: center;
+                background: #37474f;
+                color: #fff;
+                float:left;
+                /*border: 2px solid #3f51b5;
+                text-decoration: underline;
+                padding : 3px;  font-size: 10px; text-align: center;*/
+        }
+
 
 
         .tiptext {
@@ -625,7 +701,7 @@
           position: absolute;
           line-height: 1;
           padding: 12px;
-          height:80px;
+          height:60px;
           width:200px;
 	  font-size: 16px;	
 	  font-family: 'Open Sans', arial;	
