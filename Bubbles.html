@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<body>
+<style>
+
+    .bar {
+    fill: lawngreen;
+    }
+    .bar1 {
+    fill: mediumslateblue;
+    }
+
+    .axis text {
+    font: 10px sans-serif;
+    }
+
+    .axis path,
+    .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+    }
+
+    .x.axis path {
+    display: none;
+    }
+
+
+    #container .container-SD {   display: block;   margin: 1px 0;}
+	
+	
+	#SD2{
+    height:400px;
+    width:600px;
+    float:left;
+    padding:15px; 
+	}
+	
+	#SD3{
+    padding:15px 20px; 
+	float:left;
+	height:400px;
+    width:600px;
+	}
+	
+	#SD5{
+    padding:15px 20px; 
+	float:left;
+	height:400px;
+    width:600px;
+	}
+	
+	#BubbleContainer{
+	height:50%;
+    width: 90%;
+    float:left;
+    padding:15px 20px;
+	
+	}
+	
+	#Bubble1{
+    height:100%;
+    width:45%;
+    float:left;
+    padding:15px 20px;
+	box-shadow: 5px 5px 5px #888888;	
+    }
+	
+	#Bubble2{
+    height:100%;
+    width:45%;
+    float:left;
+    padding:15px 20px;
+	box-shadow: 5px 5px 5px #888888;	
+    }
+	
+	.circle {
+	  display: block;
+	  margin: 1em auto;
+	  background-size: cover;
+	  background-repeat: no-repeat;
+	  background-position: center center;
+	  -webkit-border-radius: 99em;
+	  -moz-border-radius: 99em;
+	  border-radius: 99em;
+	  border: 5px solid #eee;
+	  box-shadow: 0 3px 2px rgba(0, 0, 0, 0.3);  
+	}
+	
+    /* WHIPLASH */
+
+</style>
+
+		
+		<link rel="stylesheet" href="jquery-ui-1.11.4.custom/jquery-ui.css">
+		<link rel="stylesheet" href="jquery-ui-1.11.4.custom/buttons_tymp.css">
+		<link rel="stylesheet" href="jquery-ui-1.11.4.custom/table_tymp.css">
+		
+		<link rel="stylesheet" href="TextInputEffects/css/set1.css">
+		<link rel="stylesheet" href="ModalWindowEffects/css/component.css">
+		<link rel="stylesheet" href="ModalWindowEffects/css/default.css">
+<link rel="stylesheet" href="jquery-ui-1.11.4.custom/mfMgr.css">
+		<script src="jquery-ui-1.11.4.custom/external/jquery/jquery.js"></script>
+		<script src="ModalWindowEffects/js/modalEffects.js"></script>
+		<script src="ModalWindowEffects/js/classie.js"></script>
+		<script src="jquery-ui-1.11.4.custom/jquery-ui.js"></script>
+		<script src="jquery-ui-1.11.4.custom/jquery.ui.slider.js"></script>
+		<script src="jquery-ui-1.11.4.custom/d3.min.js"></script>
+		<script src="jquery-ui-1.11.4.custom/external/jquery/jquery-labrat-tip.js"></script>
+		<script src="jquery-ui-1.11.4.custom/external/jquery/d3-legend.js"></script>
+		<script src="jquery-ui-1.11.4.custom/dataManipulator.js"></script>
+<script>
+
+	
+
+</script>
+
+    <div id = "SD1">
+        <div class="new">
+            <ul>
+                <li><a href="javascript:void(0);">Main</a></li>
+                <li><a href="javascript:void(0);">Sectoral</a></li>
+                <li><a class="current" href="javascript:void(0);">Risk</a></li>
+                <li><a href="javascript:void(0);">Perf Attribution</a></li>
+            </ul>
+        </div>
+    </div>
+
+<div id="BubbleContainer">
+    <div id="Bubble1" >
+        <svg class="chart1"></svg>
+       
+		
+		
+        <script>
+			
+			var colorArr = new Array("black","yellow","purple","orange","steelblue","buff","gray","green","pink","violet");	
+			
+			var margin = {top: 20, right: 20, bottom: 20, left: 20},
+				width = parseFloat( $("#Bubble1").css("width") ) - margin.left - margin.right,
+				height = parseFloat( $("#Bubble1").css("height") ) - margin.top - margin.bottom;
+			
+			var xFun = d3.scale.linear().domain([ retMinRankRet() ,  retMaxRankRet()*1.1 ])
+			.range([0,width]);
+
+			var yFun = d3.scale.linear().domain([retMaxRankVol()+1,-2 ])
+				.range([height, 0]);
+
+			var xAxis = d3.svg.axis()
+				.scale(xFun)
+				.orient("bottom")
+				.tickFormat(d3.format("%"));
+
+
+			var yAxis = d3.svg.axis()
+				.scale(yFun)
+				.tickValues([])
+				.orient("left");
+
+			var chart = d3.select(".chart1")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom);
+
+			var data = retBubbleData('HV');
+			chart.append("g")
+				  .attr("class", "x axis")
+				  .attr("transform", "translate("+margin.left+","+height+")")
+				  .call(xAxis);
+
+			chart.append("g")
+				  .attr("class", "y axis")
+				  .attr("transform", "translate("+margin.left+",0)")
+				  .call(yAxis);
+				  
+				  
+			chart.selectAll(".chart1")
+				  .data(data)
+				  .enter().append("circle")
+				  //5% of screen width should ensure proportional radius
+				  .attr("r", function(d){ if(d.phase == 'HV')return d.mcap*screen.width*0.05*1.5; })
+				  .attr("fill", function(d,i) {return colorArr[i-1];} )
+				  .attr("cx", function(d){ if(d.phase == 'HV')return  xFun( d.returns ) } )
+				  .attr("cy", function(d){ if(d.phase == 'HV')return  yFun( d.volRank ) } )
+				  .style("stroke", "#7b9095")
+				  .style("stroke-width", 2)
+				  .style("fill-opacity", 0.8)
+				  .on("click", function(d,i ){alert(d.asset+' Phase: '+d.phase+' Returns: '+d.returns*100+'% REturn Rank'+d.retRank)} );
+				  //.attr("cx", function(d){return 300 + xFun(d.x1) } )
+				  //.attr("cy", function(d){return 300 - yFun(d.x2)} );
+			//});
+			
+			chart.append("text")
+            .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+            .attr("transform", "translate("+ (margin.left*0.5) +","+(height/2)+")rotate(-90)")  // text is drawn off the screen top left, move down and out and rotate
+			.style("font-size","15px")
+			.style("font-family","'Open-sans', arial")
+            .text("Volatility (Increasing ->)");
+
+			chart.append("text")
+			.attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+            .attr("transform", "translate("+ (width/2) +","+(height)+")")  // centre below axis
+			.style("font-size","15px")
+			.style("font-family","'Open-sans', arial")
+            .text("Returns (Increasing ->)");
+
+			function type(d) {
+			  d.value = +d.value; // coerce to number
+			  return d;
+			}
+
+			</script>
+    </div>
+	
+	
+	<div id="Bubble2" >
+        <svg class="chart2"></svg>
+       
+		
+		
+        <script>
+			
+			var colorArr = new Array("black","yellow","purple","orange","steelblue","buff","gray","green","pink","violet","black","yellow","purple","orange","steelblue","buff","gray","green","pink","violet");	
+			
+			var margin = {top: 20, right: 20, bottom: 20, left: 20},
+				width = parseFloat( $("#Bubble2").css("width") ) - margin.left - margin.right,
+				height = parseFloat( $("#Bubble2").css("height") ) - margin.top - margin.bottom;
+
+			var xFun = d3.scale.linear().domain([ retMinRankRet() ,  retMaxRankRet()*1.1 ])
+				.range([0,width]);
+
+			var yFun = d3.scale.linear().domain([ retMaxRankVol()+1, -2 ])
+				.range([height, 0]);
+
+			var xAxis = d3.svg.axis()
+				.scale(xFun)
+				.orient("bottom")
+				.tickFormat(d3.format("%"));
+
+
+			var yAxis = d3.svg.axis()
+				.scale(yFun)
+				.tickValues([])
+				.orient("left");
+
+			var chart = d3.select(".chart2")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom);
+
+			var data = retBubbleData('HV');
+			chart.append("g")
+				  .attr("class", "x axis")
+				  .attr("transform", "translate("+margin.left+","+height+")")
+				  .call(xAxis);
+				  
+
+			chart.append("g")
+				  .attr("class", "y axis")
+				  .attr("transform", "translate("+margin.left+",0)")
+				  .call(yAxis);
+				  
+				  
+			chart.selectAll(".chart2")
+				  .data(data)
+				  .enter().append("circle")
+				  .attr("r", function(d){ if(d.phase == 'LV')return d.mcap*screen.width*0.05*1.5; })
+				  .attr("fill", function(d,i) {return colorArr[i-1];} )
+				  .attr("cx", function(d){ if(d.phase == 'LV')return  xFun( d.returns ) } )
+				  .attr("cy", function(d){ if(d.phase == 'LV')return  yFun( d.volRank ) } )
+				  .style("stroke", "#7b9095")
+				  .style("stroke-width", 2)
+				  .style("fill-opacity", 0.8)
+				  .on("click", function(d,i ){alert(d.asset+' Phase: '+d.phase+' Returns: '+d.returns*100+'% REturn Rank'+d.retRank)} );
+				  //.attr("cx", function(d){return 300 + xFun(d.x1) } )
+				  //.attr("cy", function(d){return 300 - yFun(d.x2)} );
+			//});
+			
+			chart.append("text")
+            .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+            .attr("transform", "translate("+ (margin.left*0.5) +","+(height/2)+")rotate(-90)")  // text is drawn off the screen top left, move down and out and rotate
+			.style("font-size","15px")
+			.style("font-family","'Open-sans', arial")
+            .text("Volatility (Increasing ->)");
+
+			chart.append("text")
+			.attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
+            .attr("transform", "translate("+ (width/2) +","+(height)+")")  // centre below axis
+			.style("font-size","15px")
+			.style("font-family","'Open-sans', arial")
+            .text("Returns (Increasing ->)");
+
+			function type(d) {
+			  d.value = +d.value; // coerce to number
+			  return d;
+			}
+
+			</script>
+    </div>
+	
+</div>	
+	
+
+</body>
