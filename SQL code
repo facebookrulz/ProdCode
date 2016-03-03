@@ -1,3 +1,6 @@
 update IDX_DATA a inner join (select a.idx_name, a.idx_dt, LOG(a.close/b.close) dailyChg from IDX_DATA a, IDX_DATA b where a.idx_name = b.idx_name and b.idx_dt = DATE_ADD(a.idx_dt, INTERVAL ( case when WEEKDAY(a.idx_dt) = 0 then -3 else -1 end ) DAY ))b on a.idx_name = b.idx_name and a.idx_dt = b.idx_dt set a.dailyChg = b.dailyChg;
 // for holidays
 update IDX_DATA a inner join (select a.idx_name,a.idx_dt , log(a.close/b.close) dailyChg from (select * from IDX_DATA  where dailyChg is NULL) a, (select * from IDX_DATA) b where a.idx_name = b.idx_name and a.id = b.id+1) b on a.idx_name = b.idx_name and a.idx_dt = b.idx_dt set a.dailyChg = b.dailyChg ;
+
+update IDX_DATA set dailyChg = 0 where dailyChg is NULL;
+
